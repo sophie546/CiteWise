@@ -10,22 +10,30 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import com.citewise.backend.entity.UploadedDocument;
+import com.citewise.backend.repository.UploadedDocumentRepository;
+import java.time.LocalDateTime;
 
 @Service
 public class DocumentUploadService {
     private final long maxFileSizeBytes;
+    private final UploadedDocumentRepository uploadedDocumentRepository;
 
-    public DocumentUploadService(@Value("${rrl.max-file-size-mb:20}") int maxFileSizeMb) {
+    public DocumentUploadService(
+            @Value("${rrl.max-file-size-mb:20}") int maxFileSizeMb,
+            UploadedDocumentRepository uploadedDocumentRepository) {
         this.maxFileSizeBytes = maxFileSizeMb * 1024L * 1024L;
+        this.uploadedDocumentRepository = uploadedDocumentRepository;
     }
 
-    public DocumentUploadResponse processUploads(List<MultipartFile> files) {
+    public DocumentUploadResponse processUploads(String sessionId, List<MultipartFile> files) {
         if (files == null || files.isEmpty()) {
             return new DocumentUploadResponse(0, 0, 0, List.of());
         }
@@ -73,7 +81,7 @@ public class DocumentUploadService {
                 continue;
             }
 
-            try (PDDocument document = PDDocument.load(data)) {
+            try (PDDocument document = Loader.loadPDF(data)) {
                 PDFTextStripper stripper = new PDFTextStripper();
                 String text = stripper.getText(document);
                 int charCount = text == null ? 0 : text.trim().length();
@@ -88,6 +96,16 @@ public class DocumentUploadService {
                     ));
                     continue;
                 }
+
+                UploadedDocument entity = new UploadedDocument();
+                entity.setSessionId(sessionId);
+                entity.setFileName(fileName);
+                entity.setFileHash(hash);
+                entity.setSizeBytes(sizeBytes);
+                entity.setCharacterCount(charCount);
+                entity.setUploadedAt(LocalDateTime.now());
+                entity.setParsedText(text);
+                uploadedDocumentRepository.save(entity);
 
                 results.add(new DocumentUploadResult(
                     fileName,
