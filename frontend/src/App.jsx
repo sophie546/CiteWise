@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import AIAssessmentPanel from './components/AIAssessmentPanel'
 import './App.css'
 
 const RRL_MAX_FILE_MB = 20
@@ -16,6 +17,12 @@ const ROUTES = [
     label: 'RRL Document Uploads',
     Icon: UploadIcon,
     component: RrlUploadPage,
+  },
+  {
+    path: '/insights',
+    label: 'AI Document Analysis',
+    Icon: ChartIcon,
+    component: InsightsPage,
   },
 ]
 
@@ -149,35 +156,50 @@ function App() {
               </button>
             </div>
           </div>
-          <CurrentPage />
+          <CurrentPage navigate={navigate} />
         </main>
       </div>
     </div>
   )
 }
 
-function ModuleOnePage() {
-  const [files, setFiles] = useState([])
-  const [catalystData, setCatalystData] = useState(null)
-  const [hasSynced, setHasSynced] = useState(false)
+function ModuleOnePage({ navigate }) {
+  const [catalystData, setCatalystData] = useState(() => {
+    const saved = localStorage.getItem('citewise.catalystData')
+    if (!saved) {
+      return null
+    }
+    try {
+      return JSON.parse(saved)
+    } catch (error) {
+      return null
+    }
+  })
+  const [hasSynced, setHasSynced] = useState(() => {
+    return localStorage.getItem('citewise.hasSynced') === 'true'
+  })
   const [groupId, setGroupId] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState('')
 
-  const handleFileChange = (event) => {
-    const incomingFiles = Array.from(event.target.files || [])
-    setFiles((prev) => {
-      const existingNames = new Set(prev.map(f => f.name))
-      const newFiles = incomingFiles.filter(f => !existingNames.has(f.name))
-      return [...prev, ...newFiles]
-    })
-    // Reset the input so the same file can be selected again if removed
-    event.target.value = ''
-  }
+  useEffect(() => {
+    const savedGroupId = localStorage.getItem(RRL_STORAGE_KEY)
+    if (savedGroupId) {
+      setGroupId(savedGroupId)
+    }
+  }, [])
 
-  const removeFile = (fileToRemove) => {
-    setFiles((prev) => prev.filter(f => f !== fileToRemove))
-  }
+  useEffect(() => {
+    if (catalystData) {
+      localStorage.setItem('citewise.catalystData', JSON.stringify(catalystData))
+    } else {
+      localStorage.removeItem('citewise.catalystData')
+    }
+  }, [catalystData])
+
+  useEffect(() => {
+    localStorage.setItem('citewise.hasSynced', hasSynced)
+  }, [hasSynced])
 
   const handleCatalystLoad = async () => {
     const trimmedGroupId = groupId.trim()
@@ -207,10 +229,6 @@ function ModuleOnePage() {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const clearFiles = () => {
-    setFiles([])
   }
 
   return (
@@ -323,64 +341,15 @@ function ModuleOnePage() {
       </section>
 
       {hasSynced ? (
-        <section className="grid">
-          <div className="card span-12">
-            <div className="card-header">
-              <div>
-                <h2>Batch PDF upload</h2>
-                <p className="card-subtitle">
-                  Upload candidate RRL documents for parsing.
-                </p>
-              </div>
-              <div className="upload-actions">
-                <button type="button" className="btn small" disabled={!files.length}>
-                  Parse selected
-                </button>
-                <button
-                  type="button"
-                  className="btn small ghost"
-                  onClick={clearFiles}
-                  disabled={!files.length}
-                >
-                  Clear
-                </button>
-              </div>
-            </div>
-
-            <label className="upload-box">
-              <input
-                type="file"
-                accept="application/pdf"
-                multiple
-                onChange={handleFileChange}
-              />
-              <div>
-                <p className="upload-title">Drop PDF files or browse</p>
-                <p className="upload-meta">Multiple files supported</p>
-              </div>
-            </label>
-
-            {files.length ? (
-              <ul className="file-list">
-                {files.map((file) => (
-                  <li key={`${file.name}-${file.size}`} className="file-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <span className="file-name">{file.name}</span>
-                      <span className="file-size" style={{ marginLeft: '8px', color: 'var(--text-muted)' }}>{formatFileSize(file.size)}</span>
-                    </div>
-                    <button
-                      type="button"
-                      className="btn small ghost"
-                      onClick={() => removeFile(file)}
-                    >
-                      Remove
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="empty-state">No files selected.</div>
-            )}
+        <section className="grid" style={{ marginTop: '2rem' }}>
+          <div className="card span-12" style={{ textAlign: 'center', padding: '3rem' }}>
+            <h2>Ready for RRL Analysis</h2>
+            <p className="card-subtitle" style={{ marginBottom: '1.5rem' }}>
+              Your CATalyst topic baseline has been successfully loaded.
+            </p>
+            <button type="button" className="btn primary large" onClick={() => navigate('/rrl-upload')}>
+              Next: Upload RRL Documents
+            </button>
           </div>
         </section>
       ) : null}
@@ -388,7 +357,7 @@ function ModuleOnePage() {
   )
 }
 
-function RrlUploadPage() {
+function RrlUploadPage({ navigate }) {
   const fileInputRef = useRef(null)
   const [workspaceId, setWorkspaceId] = useState(
     () => localStorage.getItem(RRL_STORAGE_KEY) || '',
@@ -573,8 +542,8 @@ function RrlUploadPage() {
           : `Uploaded ${accepted} file(s) successfully.`,
       )
 
-      setFileQueue((prev) =>
-        prev.map((item) => {
+      setFileQueue((prev) => {
+        const nextQueue = prev.map((item) => {
           const match = results.find((result) => result.fileName === item.name)
           if (!match) {
             return item.status === 'uploading'
@@ -585,9 +554,32 @@ function RrlUploadPage() {
             ...item,
             status: match.success ? 'uploaded' : 'failed',
             message: match.message,
+            documentId: match.documentId
           }
-        }),
-      )
+        })
+        
+        // Save successful ones to localStorage
+        try {
+            const successfulDocs = nextQueue.filter(item => item.status === 'uploaded' && item.documentId).map(item => ({ id: item.documentId, name: item.name }));
+            if (successfulDocs.length > 0) {
+                const existingStr = localStorage.getItem('citewise.uploadedDocs');
+                const existing = existingStr ? JSON.parse(existingStr) : [];
+                
+                // Merge without duplicates
+                const merged = [...existing];
+                successfulDocs.forEach(doc => {
+                    if (!merged.find(d => d.id === doc.id)) {
+                        merged.push(doc);
+                    }
+                });
+                localStorage.setItem('citewise.uploadedDocs', JSON.stringify(merged));
+            }
+        } catch (e) {
+            console.error('Failed to save uploaded docs to local storage', e);
+        }
+        
+        return nextQueue;
+      })
     } catch (error) {
       setUploadState('error')
       setStatusMessage('Unable to reach the upload service.')
@@ -678,6 +670,18 @@ function RrlUploadPage() {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span className={`rrl-chip ${tone}`}>{label}</span>
+                          {item.status === 'uploaded' && item.documentId && (
+                            <button
+                              type="button"
+                              className="btn small primary"
+                              onClick={() => {
+                                localStorage.setItem('citewise.insightsDocId', item.documentId)
+                                navigate('/insights')
+                              }}
+                            >
+                              View Insights
+                            </button>
+                          )}
                           {item.status !== 'uploading' && (
                             <button
                               type="button"
@@ -838,5 +842,179 @@ function CloudIcon() {
   )
 }
 
+function ChartIcon() {
+  return (
+    <svg
+      className="icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M18 20V10M12 20V4M6 20v-6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function InsightsPage({ navigate }) {
+  const [sessionId] = useState(() => localStorage.getItem(RRL_STORAGE_KEY) || '');
+  const [documents, setDocuments] = useState([]);
+  const [activeId, setActiveId] = useState(() => localStorage.getItem('citewise.insightsDocId') || null);
+  const [isLoadingDocs, setIsLoadingDocs] = useState(false);
+  const documentsRef = useRef([]);
+
+  useEffect(() => {
+    documentsRef.current = documents;
+  }, [documents]);
+
+  // Fetch documents from backend on mount and poll for updates
+  useEffect(() => {
+    if (!sessionId) return;
+    let isMounted = true;
+    let pollTimer = null;
+
+    const fetchDocs = async () => {
+      try {
+        if (isMounted && documentsRef.current.length === 0) setIsLoadingDocs(true);
+        const res = await fetch(`/api/v1/documents/session/${encodeURIComponent(sessionId)}`);
+        if (res.ok && isMounted) {
+          const data = await res.json();
+          documentsRef.current = data;
+          setDocuments(data);
+          // Also sync localStorage for the upload page
+          const docList = data.map(d => ({ id: d.id, name: d.fileName }));
+          localStorage.setItem('citewise.uploadedDocs', JSON.stringify(docList));
+        }
+      } catch (e) {
+        console.error('Failed to fetch session documents', e);
+      } finally {
+        if (isMounted) setIsLoadingDocs(false);
+      }
+      // Poll every 8 seconds if any doc is still processing
+      if (isMounted) {
+        pollTimer = setTimeout(fetchDocs, 8000);
+      }
+    };
+
+    fetchDocs();
+    return () => { isMounted = false; clearTimeout(pollTimer); };
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (activeId) {
+      localStorage.setItem('citewise.insightsDocId', activeId);
+    }
+  }, [activeId]);
+
+  const handleDelete = async (docId, e) => {
+    e.stopPropagation();
+    try {
+      await fetch(`/api/v1/documents/${docId}`, { method: 'DELETE' });
+    } catch (err) {
+      console.error('Failed to delete from server', err);
+    }
+    setDocuments(prev => {
+      const next = prev.filter(d => d.id !== docId);
+      documentsRef.current = next;
+      return next;
+    });
+    if (String(activeId) === String(docId)) {
+      setActiveId(null);
+      localStorage.removeItem('citewise.insightsDocId');
+    }
+  };
+
+  return (
+    <div className="insights-layout">
+      {/* Sidebar: Uploaded RRLs */}
+      <div className="insights-sidebar">
+        <div className="card">
+          <div className="card-header">
+            <div>
+              <h2>Uploaded RRLs</h2>
+              <p className="card-subtitle">Select a document to view insights</p>
+            </div>
+          </div>
+
+          <div className="insights-doc-list">
+            {isLoadingDocs && documents.length === 0 ? (
+              <div className="empty-state">Loading documents...</div>
+            ) : documents.length > 0 ? (
+              documents.map(doc => {
+                const isActive = String(activeId) === String(doc.id);
+                const hasScores = doc.status === 'complete' && doc.relevancyScore != null;
+                const pct = hasScores ? Math.round(doc.relevancyScore) : null;
+                return (
+                  <div
+                    key={doc.id}
+                    className={`insights-doc-item${isActive ? ' active' : ''}`}
+                    onClick={() => setActiveId(String(doc.id))}
+                  >
+                    <div className="insights-doc-top">
+                      <svg className="insights-doc-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span className="insights-doc-name">{doc.fileName}</span>
+                      <button
+                        type="button"
+                        className="insights-doc-delete"
+                        title="Remove document"
+                        onClick={(e) => handleDelete(doc.id, e)}
+                      >
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                    {hasScores ? (
+                      <div className="insights-doc-score-row">
+                        <div className="insights-doc-minibar-track">
+                          <div className="insights-doc-minibar-fill" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="insights-doc-pct">{pct}%</span>
+                      </div>
+                    ) : (
+                      <span className="insights-doc-status">
+                        <span className="insights-doc-pulse" /> Analyzing...
+                      </span>
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              <div className="empty-state">No documents uploaded yet.</div>
+            )}
+          </div>
+
+          <div className="insights-sidebar-footer">
+            <button className="btn primary" style={{ width: '100%' }} onClick={() => navigate('/rrl-upload')}>
+              Upload New PDF
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main: AI Assessment Panel */}
+      <div className="insights-main">
+        {activeId ? (
+          <AIAssessmentPanel documentId={activeId} onUploadClick={() => navigate('/rrl-upload')} />
+        ) : (
+          <div className="aap-empty">
+            <svg className="aap-empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p>Select a document from the left panel to view AI insights.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default App
