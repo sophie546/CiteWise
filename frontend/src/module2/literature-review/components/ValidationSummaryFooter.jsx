@@ -9,7 +9,7 @@ export default function ValidationSummaryFooter({
     return (
         <footer
             style={{
-                background: "#1a1a1a",
+                background: "#1a1714",
                 borderTop: "1px solid #2e2e2e",
                 padding: "0 32px",
                 height: "72px",
@@ -33,10 +33,10 @@ export default function ValidationSummaryFooter({
                 >
                     <div
                         style={{
-                            fontFamily: "'Georgia', serif",
+                            fontFamily: "'Poppins', sans-serif",
                             fontSize: "24px",
                             fontWeight: "700",
-                            color: "#ffffff",
+                            color: "#f0ece6",
                             lineHeight: 1.1,
                         }}
                     >
@@ -44,9 +44,9 @@ export default function ValidationSummaryFooter({
                     </div>
                     <div
                         style={{
-                            fontFamily: "'Courier New', monospace",
+                            fontFamily: "'Geist Mono', monospace",
                             fontSize: "10px",
-                            color: "#e8620a",
+                            color: "#e07b39",
                             letterSpacing: "1px",
                             textTransform: "uppercase",
                             marginTop: "3px",
@@ -60,10 +60,10 @@ export default function ValidationSummaryFooter({
                 <div style={{ paddingLeft: "32px" }}>
                     <div
                         style={{
-                            fontFamily: "'Georgia', serif",
+                            fontFamily: "'Poppins', sans-serif",
                             fontSize: "24px",
                             fontWeight: "700",
-                            color: "#ffffff",
+                            color: "#f0ece6",
                             lineHeight: 1.1,
                         }}
                     >
@@ -71,9 +71,9 @@ export default function ValidationSummaryFooter({
                     </div>
                     <div
                         style={{
-                            fontFamily: "'Courier New', monospace",
+                            fontFamily: "'Geist Mono', monospace",
                             fontSize: "10px",
-                            color: "#e8620a",
+                            color: "#e07b39",
                             letterSpacing: "1px",
                             textTransform: "uppercase",
                             marginTop: "3px",
@@ -91,7 +91,7 @@ export default function ValidationSummaryFooter({
                     display: "flex",
                     alignItems: "center",
                     gap: "10px",
-                    background: canProceed ? "#e8620a" : "#2a2a2a",
+                    background: canProceed ? "#e07b39" : "#2a2724",
                     border: "none",
                     borderRadius: "10px",
                     padding: "14px 28px",
@@ -100,10 +100,10 @@ export default function ValidationSummaryFooter({
                     opacity: canProceed ? 1 : 0.5,
                 }}
                 onMouseEnter={(e) => {
-                    if (canProceed) e.currentTarget.style.background = "#d4570a";
+                    if (canProceed) e.currentTarget.style.background = "#c96d2e";
                 }}
                 onMouseLeave={(e) => {
-                    if (canProceed) e.currentTarget.style.background = "#e8620a";
+                    if (canProceed) e.currentTarget.style.background = "#e07b39";
                 }}
                 onMouseDown={(e) => {
                     if (canProceed) e.currentTarget.style.transform = "scale(0.97)";
@@ -116,7 +116,7 @@ export default function ValidationSummaryFooter({
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                     <path
                         d="M3 9H15M15 9L10.5 4.5M15 9L10.5 13.5"
-                        stroke="#ffffff"
+                        stroke="#f0ece6"
                         strokeWidth="1.5"
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -124,10 +124,10 @@ export default function ValidationSummaryFooter({
                 </svg>
                 <span
                     style={{
-                        fontFamily: "'Georgia', serif",
+                        fontFamily: "'Poppins', sans-serif",
                         fontSize: "14px",
                         fontWeight: "700",
-                        color: "#ffffff",
+                        color: "#f0ece6",
                         whiteSpace: "nowrap",
                         letterSpacing: "0.2px",
                     }}

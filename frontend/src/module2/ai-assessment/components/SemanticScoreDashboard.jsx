@@ -28,9 +28,9 @@ const ScoreBar = ({ label, value }) => {
     >
       <span
         style={{
-          fontFamily: "'Courier New', monospace",
+          fontFamily: "'Geist Mono', monospace",
           fontSize: "12px",
-          color: "#aaaaaa",
+          color: "#8a8278",
           whiteSpace: "nowrap",
         }}
       >
@@ -41,7 +41,7 @@ const ScoreBar = ({ label, value }) => {
       <div
         style={{
           height: "8px",
-          background: "#2a2a2a",
+          background: "#2a2724",
           borderRadius: "4px",
           overflow: "hidden",
         }}
@@ -50,7 +50,7 @@ const ScoreBar = ({ label, value }) => {
           style={{
             height: "100%",
             width: `${percent}%`,
-            background: "linear-gradient(90deg, #c4500a 0%, #e8620a 100%)",
+            background: "linear-gradient(90deg, #c96d2e 0%, #e07b39 100%)",
             borderRadius: "4px",
             transition: "width 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
@@ -59,9 +59,9 @@ const ScoreBar = ({ label, value }) => {
 
       <span
         style={{
-          fontFamily: "'Courier New', monospace",
+          fontFamily: "'Geist Mono', monospace",
           fontSize: "12px",
-          color: "#e8620a",
+          color: "#e07b39",
           fontWeight: "700",
           textAlign: "right",
         }}
@@ -80,10 +80,10 @@ const SemanticScoreDashboard = ({ scores = {} }) => {
         <span style={{ fontSize: "16px" }}>📦</span>
         <span
           style={{
-            fontFamily: "'Georgia', serif",
+            fontFamily: "'Poppins', sans-serif",
             fontSize: "16px",
             fontWeight: "700",
-            color: "#e8620a",
+            color: "#e07b39",
           }}
         >
           Semantic Alignment Scores

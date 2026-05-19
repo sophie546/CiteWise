@@ -7,7 +7,7 @@ function ApprovalToggle({ isApproved, onToggle }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        background: "#1e1e1e",
+        background: "#201d1a",
         border: "1px solid #2e2e2e",
         borderRadius: "8px",
         padding: "14px 18px",
@@ -15,10 +15,10 @@ function ApprovalToggle({ isApproved, onToggle }) {
     >
       <span
         style={{
-          fontFamily: "'Courier New', monospace",
+          fontFamily: "'Geist Mono', monospace",
           fontSize: "11px",
           fontWeight: "700",
-          color: "#888888",
+          color: "#8a8278",
           letterSpacing: "1.5px",
           textTransform: "uppercase",
         }}
@@ -33,7 +33,7 @@ function ApprovalToggle({ isApproved, onToggle }) {
           width: "52px",
           height: "28px",
           borderRadius: "14px",
-          background: isApproved ? "#e8620a" : "#3a3a3a",
+          background: isApproved ? "#e07b39" : "#333028",
           position: "relative",
           cursor: "pointer",
           transition: "background 0.25s ease",
@@ -45,7 +45,7 @@ function ApprovalToggle({ isApproved, onToggle }) {
             width: "22px",
             height: "22px",
             borderRadius: "50%",
-            background: "#ffffff",
+            background: "#f0ece6",
             position: "absolute",
             top: "3px",
             left: isApproved ? "27px" : "3px",
@@ -74,7 +74,7 @@ export default function DocumentActiveCard({
   return (
     <div
       style={{
-        background: "#1e1e1e",
+        background: "#201d1a",
         border: "1px solid #2e2e2e",
         borderRadius: "12px",
         padding: "20px",
@@ -93,10 +93,10 @@ export default function DocumentActiveCard({
       >
         <span
           style={{
-            fontFamily: "'Courier New', monospace",
+            fontFamily: "'Geist Mono', monospace",
             fontSize: "12px",
             fontWeight: "700",
-            color: "#e8620a",
+            color: "#e07b39",
             letterSpacing: "0.5px",
           }}
         >
@@ -112,7 +112,7 @@ export default function DocumentActiveCard({
                 background: "none",
                 border: "1px solid #3a3a3a",
                 borderRadius: "6px",
-                color: "#aaaaaa",
+                color: "#8a8278",
                 width: "28px",
                 height: "28px",
                 cursor: "pointer",
@@ -124,12 +124,12 @@ export default function DocumentActiveCard({
                 transition: "border-color 0.2s, color 0.2s",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "#e8620a";
-                e.currentTarget.style.color = "#e8620a";
+                e.currentTarget.style.borderColor = "#e07b39";
+                e.currentTarget.style.color = "#e07b39";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "#3a3a3a";
-                e.currentTarget.style.color = "#aaaaaa";
+                e.currentTarget.style.borderColor = "#333028";
+                e.currentTarget.style.color = "#8a8278";
               }}
             >
               {arrow}
@@ -144,7 +144,7 @@ export default function DocumentActiveCard({
           display: "flex",
           alignItems: "center",
           gap: "14px",
-          background: "#252525",
+          background: "#252220",
           borderRadius: "8px",
           padding: "14px",
         }}
@@ -154,7 +154,7 @@ export default function DocumentActiveCard({
           style={{
             width: "40px",
             height: "48px",
-            background: "#e8620a",
+            background: "#e07b39",
             borderRadius: "6px",
             display: "flex",
             alignItems: "center",
@@ -164,10 +164,10 @@ export default function DocumentActiveCard({
         >
           <span
             style={{
-              fontFamily: "'Courier New', monospace",
+              fontFamily: "'Geist Mono', monospace",
               fontSize: "9px",
               fontWeight: "700",
-              color: "#ffffff",
+              color: "#f0ece6",
               letterSpacing: "0.5px",
             }}
           >
@@ -178,10 +178,10 @@ export default function DocumentActiveCard({
         <div>
           <div
             style={{
-              fontFamily: "'Georgia', serif",
+              fontFamily: "'Poppins', sans-serif",
               fontSize: "14px",
               fontWeight: "700",
-              color: "#ffffff",
+              color: "#f0ece6",
               marginBottom: "4px",
             }}
           >
@@ -189,9 +189,9 @@ export default function DocumentActiveCard({
           </div>
           <div
             style={{
-              fontFamily: "'Courier New', monospace",
+              fontFamily: "'Geist Mono', monospace",
               fontSize: "11px",
-              color: "#666666",
+              color: "#8a8278",
             }}
           >
             {doc.size} · {doc.pages} pages

@@ -2,9 +2,9 @@ import React from 'react';
 
 // Map relevance level to the exact string expected by the design
 const RELEVANCE_COLORS = {
-  High: "#e8620a",
+  High: "#e07b39",
   Medium: "#c4933f",
-  Low: "#888888",
+  Low: "#8a8278",
 };
 
 const getRelevanceDisplay = (level) => {
@@ -17,7 +17,7 @@ const getRelevanceDisplay = (level) => {
 
 const ExcerptItem = ({ index, quote, page, relevance }) => {
   const relevanceDisplay = getRelevanceDisplay(relevance);
-  const color = RELEVANCE_COLORS[relevanceDisplay] || "#888888";
+  const color = RELEVANCE_COLORS[relevanceDisplay] || "#8a8278";
 
   return (
     <div
@@ -44,9 +44,9 @@ const ExcerptItem = ({ index, quote, page, relevance }) => {
       >
         <span
           style={{
-            fontFamily: "'Courier New', monospace",
+            fontFamily: "'Geist Mono', monospace",
             fontSize: "12px",
-            color: "#888888",
+            color: "#8a8278",
             fontWeight: "600",
           }}
         >
@@ -58,9 +58,9 @@ const ExcerptItem = ({ index, quote, page, relevance }) => {
       <div style={{ flex: 1, minWidth: 0 }}>
         <p
           style={{
-            fontFamily: "'Georgia', serif",
+            fontFamily: "'Poppins', sans-serif",
             fontSize: "13px",
-            color: "#cccccc",
+            color: "#f0ece6",
             lineHeight: "1.65",
             margin: "0 0 8px 0",
             fontStyle: "italic",
@@ -77,19 +77,19 @@ const ExcerptItem = ({ index, quote, page, relevance }) => {
         >
           <span
             style={{
-              fontFamily: "'Courier New', monospace",
+              fontFamily: "'Geist Mono', monospace",
               fontSize: "11px",
-              color: "#555555",
+              color: "#8a8278",
             }}
           >
             Page {page}
           </span>
-          <span style={{ color: "#444444", fontSize: "11px" }}>·</span>
+          <span style={{ color: "#8a8278", fontSize: "11px" }}>·</span>
           <span
             style={{
-              fontFamily: "'Courier New', monospace",
+              fontFamily: "'Geist Mono', monospace",
               fontSize: "11px",
-              color: "#555555",
+              color: "#8a8278",
             }}
           >
             Relevance:{" "}
@@ -125,10 +125,10 @@ const EvidenceExcerptList = ({ excerpts }) => {
           <span style={{ fontSize: "16px" }}>📌</span>
           <span
             style={{
-              fontFamily: "'Georgia', serif",
+              fontFamily: "'Poppins', sans-serif",
               fontSize: "16px",
               fontWeight: "700",
-              color: "#e8620a",
+              color: "#e07b39",
             }}
           >
             Highlighted Evidence Excerpts
@@ -137,23 +137,23 @@ const EvidenceExcerptList = ({ excerpts }) => {
         {/* Scrollable container with empty message */}
         <div
           style={{
-            background: "#1a1a1a",
+            background: "#1a1714",
             border: "1px solid #2e2e2e",
             borderRadius: "10px",
             padding: "0 20px",
             maxHeight: "320px",
             overflowY: "auto",
             scrollbarWidth: "thin",
-            scrollbarColor: "#3a3a3a #1a1a1a",
+            scrollbarColor: "#333028 #1a1714",
           }}
         >
           <div
             style={{
               padding: "32px 0",
               textAlign: "center",
-              fontFamily: "'Courier New', monospace",
+              fontFamily: "'Geist Mono', monospace",
               fontSize: "12px",
-              color: "#555555",
+              color: "#8a8278",
             }}
           >
             No evidence excerpts available.
@@ -185,10 +185,10 @@ const EvidenceExcerptList = ({ excerpts }) => {
         <span style={{ fontSize: "16px" }}>📌</span>
         <span
           style={{
-            fontFamily: "'Georgia', serif",
+            fontFamily: "'Poppins', sans-serif",
             fontSize: "16px",
             fontWeight: "700",
-            color: "#e8620a",
+            color: "#e07b39",
           }}
         >
           Highlighted Evidence Excerpts
@@ -198,14 +198,14 @@ const EvidenceExcerptList = ({ excerpts }) => {
       {/* Scrollable list */}
       <div
         style={{
-          background: "#1a1a1a",
+          background: "#1a1714",
           border: "1px solid #2e2e2e",
           borderRadius: "10px",
           padding: "0 20px",
           maxHeight: "320px",
           overflowY: "auto",
           scrollbarWidth: "thin",
-          scrollbarColor: "#3a3a3a #1a1a1a",
+          scrollbarColor: "#333028 #1a1714",
         }}
       >
         {items.map((item, i) => (

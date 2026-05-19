@@ -1,81 +1,76 @@
-import { useState } from "react";
+const STEPS = ["Data Import", "AI Assessment", "Generate Introduction"];
 
-const steps = ["Data Import", "AI Assessment", "Generate Introduction"];
-
-export default function GlobalNavigationBar({ currentStep = 1, onNavigate }) {
+export default function GlobalNavigationBar({ currentStep = 0, onNavigate }) {
   return (
     <nav
       style={{
-        background: "#1a1a1a",
-        borderBottom: "1px solid #2e2e2e",
-        padding: "0 32px",
-        height: "64px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
+        background: "#1a1714",
+        borderBottom: "1px solid #2e2a26",
         position: "sticky",
         top: 0,
         zIndex: 100,
+        width: "100%",
       }}
     >
-      {/* Logo */}
       <div
         style={{
-          fontFamily: "'Poppins', sans-serif",
-          fontWeight: "700",
-          fontSize: "20px",
-          color: "#ffffff",
-          letterSpacing: "-0.3px",
-          cursor: "pointer",
+          maxWidth: 1280,
+          margin: "0 auto",
+          padding: "0 2rem",
+          height: "60px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
         }}
       >
-        CiteWise
-      </div>
+        {/* Logo */}
+        <span
+          style={{
+            fontFamily: "'Poppins', sans-serif",
+            fontWeight: 700,
+            fontSize: "1.1rem",
+            color: "#f0ece6",
+            letterSpacing: "-0.01em",
+            userSelect: "none",
+          }}
+        >
+          CiteWise
+        </span>
 
-      {/* Step Navigation */}
-      <div style={{ display: "flex", alignItems: "center", gap: "40px" }}>
-        {steps.map((step, index) => {
-          const isActive = index === currentStep;
-          const isPast = index < currentStep;
-          return (
-            <button
-              key={step}
-              onClick={() => onNavigate && onNavigate(index)}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: isPast || isActive ? "pointer" : "default",
-                fontFamily: "'Poppins', sans-serif",
-                fontSize: "14px",
-                fontWeight: isActive ? "700" : "400",
-                color: isActive
-                  ? "#ffffff"
-                  : isPast
-                  ? "#888888"
-                  : "#555555",
-                letterSpacing: "0.2px",
-                padding: "4px 0",
-                position: "relative",
-                transition: "color 0.2s ease",
-              }}
-            >
-              {step}
-              {isActive && (
-                <span
-                  style={{
-                    position: "absolute",
-                    bottom: "-22px",
-                    left: "0",
-                    right: "0",
-                    height: "2px",
-                    background: "#e8620a",
-                    borderRadius: "1px",
-                  }}
-                />
-              )}
-            </button>
-          );
-        })}
+        {/* Step tabs */}
+        <div style={{ display: "flex", alignItems: "stretch", gap: 0, height: "60px" }}>
+          {STEPS.map((step, index) => {
+            const isActive = index === currentStep;
+            const isPast = index < currentStep;
+            // Allow navigating to any step via the navbar (enable forward navigation)
+            const isClickable = true;
+            return (
+              <button
+                key={step}
+                onClick={() => isClickable && onNavigate?.(index)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  borderBottom: isActive ? "2px solid #e07b39" : "2px solid transparent",
+                  cursor: isClickable ? "pointer" : "default",
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: "0.875rem",
+                  fontWeight: isActive ? 700 : 400,
+                  color: isActive
+                    ? "#f0ece6"
+                    : isPast
+                    ? "#8a8278"
+                    : "rgba(240,236,230,0.32)",
+                  padding: "0 20px",
+                  transition: "color 0.2s, border-color 0.2s",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {step}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );

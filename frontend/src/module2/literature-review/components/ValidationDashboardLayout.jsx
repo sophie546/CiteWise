@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import GlobalNavigationBar from "../../../shared/components/GlobalNavigationBar";
 import DocumentActiveCard from "./DocumentActiveCard";
 import QuickNavigationList from "./QuickNavigationList";
 import AIAssessmentPanel from "../../ai-assessment/components/AIAssessmentPanel";
@@ -136,16 +135,12 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
   return (
     <div
       style={{
-        minHeight: "100vh",
-        background: "#141414",
         display: "flex",
         flexDirection: "column",
-        fontFamily: "'Georgia', serif",
+        fontFamily: "'Poppins', sans-serif",
+        flex: 1,
       }}
     >
-      {/* Top Progress Tracker */}
-      <GlobalNavigationBar currentStep={1} />
-
       {/* Main Structural Flex/Grid Row Container */}
       <main
         style={{
@@ -154,6 +149,9 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
           gridTemplateColumns: "320px 1fr",
           gap: "24px",
           padding: "24px 32px",
+          maxWidth: 1280,
+          margin: "0 auto",
+          width: "100%",
           minHeight: 0,
         }}
       >

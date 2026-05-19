@@ -116,10 +116,10 @@ const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
     >
       <h2
         style={{
-          fontFamily: "'Georgia', serif",
+          fontFamily: "'Poppins', sans-serif",
           fontSize: '22px',
           fontWeight: '700',
-          color: '#e8620a',
+          color: '#e07b39',
           margin: 0,
         }}
       >
@@ -132,18 +132,18 @@ const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
           disabled={isAssessing}
           style={{
             background: 'transparent',
-            border: '1px solid #e8620a',
+            border: '1px solid #e07b39',
             borderRadius: '20px',
             padding: '6px 16px',
-            fontFamily: "'Courier New', monospace",
+            fontFamily: "'Geist Mono', monospace",
             fontSize: '12px',
             fontWeight: 500,
-            color: '#e8620a',
+            color: '#e07b39',
             cursor: isAssessing ? 'not-allowed' : 'pointer',
             transition: 'all 0.2s ease',
           }}
           onMouseEnter={(e) => {
-            if (!isAssessing) e.currentTarget.style.background = '#e8620a10';
+            if (!isAssessing) e.currentTarget.style.background = 'rgba(224,123,57,0.06)';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'transparent';
@@ -161,7 +161,7 @@ const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
     return (
       <div
         style={{
-          background: '#1e1e1e',
+          background: '#201d1a',
           border: '1px solid #2e2e2e',
           borderRadius: '12px',
           padding: '28px',
@@ -188,7 +188,7 @@ const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
             height="48"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#555"
+            stroke="#8a8278"
             strokeWidth="1"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -197,9 +197,9 @@ const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
           </svg>
           <p
             style={{
-              fontFamily: "'Courier New', monospace",
+              fontFamily: "'Geist Mono', monospace",
               fontSize: '13px',
-              color: '#888',
+              color: '#8a8278',
               margin: 0,
             }}
           >
@@ -215,7 +215,7 @@ const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
     return (
       <div
         style={{
-          background: '#1e1e1e',
+          background: '#201d1a',
           border: '1px solid #2e2e2e',
           borderRadius: '12px',
           padding: '28px',
@@ -237,9 +237,9 @@ const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
         >
           <div
             style={{
-              fontFamily: "'Courier New', monospace",
+              fontFamily: "'Geist Mono', monospace",
               fontSize: '13px',
-              color: '#555555',
+              color: '#8a8278',
               letterSpacing: '0.5px',
             }}
           >
@@ -255,7 +255,7 @@ const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
     return (
       <div
         style={{
-          background: '#1e1e1e',
+          background: '#201d1a',
           border: '1px solid #2e2e2e',
           borderRadius: '12px',
           padding: '28px',
@@ -269,7 +269,7 @@ const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
         <PanelHeader />
         <div
           style={{
-            background: '#2a1a1a',
+            background: '#201d1a',
             border: '1px solid #5a2a2a',
             borderRadius: '8px',
             padding: '16px',
@@ -278,9 +278,9 @@ const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
         >
           <h3
             style={{
-              fontFamily: "'Georgia', serif",
+              fontFamily: "'Poppins', sans-serif",
               fontSize: '16px',
-              color: '#e8620a',
+              color: '#e07b39',
               margin: '0 0 8px 0',
             }}
           >
@@ -288,9 +288,9 @@ const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
           </h3>
           <p
             style={{
-              fontFamily: "'Courier New', monospace",
+              fontFamily: "'Geist Mono', monospace",
               fontSize: '13px',
-              color: '#ccc',
+              color: '#f0ece6',
               margin: 0,
             }}
           >
@@ -306,7 +306,7 @@ const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
     return (
       <div
         style={{
-          background: '#1e1e1e',
+          background: '#201d1a',
           border: '1px solid #2e2e2e',
           borderRadius: '12px',
           padding: '28px',
@@ -329,9 +329,9 @@ const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
         >
           <p
             style={{
-              fontFamily: "'Courier New', monospace",
+              fontFamily: "'Geist Mono', monospace",
               fontSize: '13px',
-              color: '#888',
+              color: '#8a8278',
             }}
           >
             No insights available yet. The document may still be processing.
@@ -345,7 +345,7 @@ const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
   return (
     <div
       style={{
-        background: '#1e1e1e',
+        background: '#201d1a',
         border: '1px solid #2e2e2e',
         borderRadius: '12px',
         padding: '28px',
