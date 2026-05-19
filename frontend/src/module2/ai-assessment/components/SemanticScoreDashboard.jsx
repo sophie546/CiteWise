@@ -1,11 +1,22 @@
+import React from 'react';
+
+// Metrics definition using first file's keys, but labels from second file
 const METRICS = [
-  { label: "Research Gap Alignment", key: "researchGapAlignment" },
-  { label: "Methodological Relevance", key: "methodologicalRelevance" },
-  { label: "Theoretical Contribution", key: "theoreticalContribution" },
-  { label: "Citation Quality", key: "citationQuality" },
+  { label: "Research Gap Alignment", key: "gapAlignment" },
+  { label: "Methodological Relevance", key: "methodology" },
+  { label: "Theoretical Contribution", key: "theoretical" },
+  { label: "Citation Quality", key: "citation" },
 ];
 
-function ScoreBar({ label, value }) {
+// Helper to normalise values: 0.75 → 75, 85 → 85
+const getPercentage = (value) => {
+  if (value === undefined || value === null) return 0;
+  if (value <= 1 && value > 0) return Math.round(value * 100);
+  return Math.round(value);
+};
+
+const ScoreBar = ({ label, value }) => {
+  const percent = getPercentage(value);
   return (
     <div
       style={{
@@ -38,7 +49,7 @@ function ScoreBar({ label, value }) {
         <div
           style={{
             height: "100%",
-            width: `${value}%`,
+            width: `${percent}%`,
             background: "linear-gradient(90deg, #c4500a 0%, #e8620a 100%)",
             borderRadius: "4px",
             transition: "width 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -55,16 +66,16 @@ function ScoreBar({ label, value }) {
           textAlign: "right",
         }}
       >
-        {value}%
+        {percent}%
       </span>
     </div>
   );
-}
+};
 
-export default function SemanticScoreDashboard({ scores = {} }) {
+const SemanticScoreDashboard = ({ scores = {} }) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-      {/* Section Header */}
+      {/* Section Header (using second file's icon and style) */}
       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
         <span style={{ fontSize: "16px" }}>📦</span>
         <span
@@ -88,9 +99,11 @@ export default function SemanticScoreDashboard({ scores = {} }) {
         }}
       >
         {METRICS.map(({ label, key }) => (
-          <ScoreBar key={key} label={label} value={scores[key] ?? 0} />
+          <ScoreBar key={key} label={label} value={scores[key]} />
         ))}
       </div>
     </div>
   );
-}
+};
+
+export default SemanticScoreDashboard;

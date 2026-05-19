@@ -8,9 +8,26 @@ export default function App() {
   const [activeSessionId, setActiveSessionId] = useState("session-uuid-token-string");
 
   return (
-    <ValidationDashboardLayout 
-      sessionId={activeSessionId} 
-      onStepChange={setCurrentModuleStep} 
-    />
+    <>
+      {/* {currentModuleStep === 0 && (
+        <WorkspaceImportLayout 
+          onImportSuccess={(id) => { setActiveSessionId(id); setCurrentModuleStep(1); }} 
+        />
+      )} */}
+      
+      {currentModuleStep === 1 && (
+        <ValidationDashboardLayout 
+          sessionId={activeSessionId} 
+          onStepChange={setCurrentModuleStep} 
+        />
+      )}
+      
+      {/* {currentModuleStep === 2 && (
+        <SynthesisDraftLayout 
+          sessionId={activeSessionId} 
+          onStepChange={setCurrentModuleStep} 
+        />
+      )} */}
+    </>
   );
 }
