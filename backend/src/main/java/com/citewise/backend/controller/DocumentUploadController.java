@@ -37,7 +37,7 @@ public class DocumentUploadController {
                 .body(new ApiResponse<>(false, "At least one PDF is required", null));
         }
 
-        DocumentUploadResponse response = documentUploadService.processUploads(files);
+        DocumentUploadResponse response = documentUploadService.processUploads(sessionId, files);
         boolean anySuccess = response.acceptedFiles() > 0;
         String message = anySuccess
             ? (response.failedFiles() > 0 ? "Upload completed with issues" : "Upload completed")
