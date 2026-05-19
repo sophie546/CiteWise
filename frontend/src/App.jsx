@@ -165,8 +165,18 @@ function ModuleOnePage() {
   const [loadError, setLoadError] = useState('')
 
   const handleFileChange = (event) => {
-    const nextFiles = Array.from(event.target.files || [])
-    setFiles(nextFiles)
+    const incomingFiles = Array.from(event.target.files || [])
+    setFiles((prev) => {
+      const existingNames = new Set(prev.map(f => f.name))
+      const newFiles = incomingFiles.filter(f => !existingNames.has(f.name))
+      return [...prev, ...newFiles]
+    })
+    // Reset the input so the same file can be selected again if removed
+    event.target.value = ''
+  }
+
+  const removeFile = (fileToRemove) => {
+    setFiles((prev) => prev.filter(f => f !== fileToRemove))
   }
 
   const handleCatalystLoad = async () => {
@@ -353,9 +363,18 @@ function ModuleOnePage() {
             {files.length ? (
               <ul className="file-list">
                 {files.map((file) => (
-                  <li key={`${file.name}-${file.size}`} className="file-item">
-                    <span className="file-name">{file.name}</span>
-                    <span className="file-size">{formatFileSize(file.size)}</span>
+                  <li key={`${file.name}-${file.size}`} className="file-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <span className="file-name">{file.name}</span>
+                      <span className="file-size" style={{ marginLeft: '8px', color: 'var(--text-muted)' }}>{formatFileSize(file.size)}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn small ghost"
+                      onClick={() => removeFile(file)}
+                    >
+                      Remove
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -456,6 +475,14 @@ function RrlUploadPage() {
 
       return next
     })
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const removeFileItem = (idToRemove) => {
+    setFileQueue((prev) => prev.filter(item => item.id !== idToRemove))
   }
 
   const handleDrop = (event) => {
@@ -617,7 +644,9 @@ function RrlUploadPage() {
                 type="file"
                 accept="application/pdf"
                 multiple
-                onChange={(event) => appendFiles(event.target.files || [])}
+                onChange={(event) => {
+                  appendFiles(event.target.files || [])
+                }}
               />
               <div className="rrl-drop-content">
                 <CloudIcon />
@@ -647,7 +676,18 @@ function RrlUploadPage() {
                             {formatFileSize(item.size)} · {item.message}
                           </p>
                         </div>
-                        <span className={`rrl-chip ${tone}`}>{label}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span className={`rrl-chip ${tone}`}>{label}</span>
+                          {item.status !== 'uploading' && (
+                            <button
+                              type="button"
+                              className="btn small ghost"
+                              onClick={() => removeFileItem(item.id)}
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
                       </li>
                     )
                   })}
