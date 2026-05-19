@@ -21,7 +21,7 @@ export default function GlobalNavigationBar({ currentStep = 1, onNavigate }) {
       {/* Logo */}
       <div
         style={{
-          fontFamily: "'Georgia', serif",
+          fontFamily: "'Poppins', sans-serif",
           fontWeight: "700",
           fontSize: "20px",
           color: "#ffffff",
@@ -45,7 +45,7 @@ export default function GlobalNavigationBar({ currentStep = 1, onNavigate }) {
                 background: "none",
                 border: "none",
                 cursor: isPast || isActive ? "pointer" : "default",
-                fontFamily: "'Georgia', serif",
+                fontFamily: "'Poppins', sans-serif",
                 fontSize: "14px",
                 fontWeight: isActive ? "700" : "400",
                 color: isActive
