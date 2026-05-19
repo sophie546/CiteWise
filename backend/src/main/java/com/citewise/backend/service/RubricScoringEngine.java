@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import com.citewise.backend.dto.RawAIResponse;
 import com.citewise.backend.entity.DocumentInsight;
 import com.citewise.backend.entity.EvidenceExcerpt;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -75,5 +76,19 @@ public class RubricScoringEngine {
             logger.error("Unexpected error while parsing AI response", e);
             throw new RuntimeException("Failed to parse AI response", e);
         }
+    }
+
+        // Add this method to RubricScoringEngine.java
+    public DocumentInsight mapToEntity(RawAIResponse response, Long documentId) {
+        // You can delegate to your existing parse method or map the fields here
+        // Example:
+        DocumentInsight insight = new DocumentInsight();
+        insight.setDocumentId(documentId);
+        insight.setGapAlignmentScore(response.getGapAlignmentScore());
+        insight.setMethodologyScore(response.getMethodologyScore());
+        insight.setTheoreticalScore(response.getTheoreticalScore());
+        insight.setCitationScore(response.getCitationScore());
+        // ... map other fields as needed
+        return insight;
     }
 }
