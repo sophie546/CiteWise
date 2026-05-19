@@ -141,15 +141,42 @@ function ModuleOnePage() {
   const [files, setFiles] = useState([])
   const [catalystData, setCatalystData] = useState(null)
   const [hasSynced, setHasSynced] = useState(false)
+  const [groupId, setGroupId] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [loadError, setLoadError] = useState('')
 
   const handleFileChange = (event) => {
     const nextFiles = Array.from(event.target.files || [])
     setFiles(nextFiles)
   }
 
-  const handleCatalystLoad = () => {
-    setCatalystData(null)
+  const handleCatalystLoad = async () => {
+    const trimmedGroupId = groupId.trim()
     setHasSynced(true)
+    setLoadError('')
+    setCatalystData(null)
+
+    if (!trimmedGroupId) {
+      setLoadError('Workspace ID is required.')
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/api/catalyst/${encodeURIComponent(trimmedGroupId)}`)
+      const payload = await response.json()
+
+      if (!response.ok || !payload?.success) {
+        setLoadError(payload?.message || 'Unable to load CATalyst data.')
+        return
+      }
+
+      setCatalystData(payload.data || null)
+    } catch (error) {
+      setLoadError('Unable to reach CATalyst right now.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const clearFiles = () => {
@@ -181,34 +208,48 @@ function ModuleOnePage() {
           <div className="field-grid two-col">
             <label className="field">
               <span>Workspace ID</span>
-              <input type="text" name="groupId" />
+              <input
+                type="text"
+                name="groupId"
+                value={groupId}
+                onChange={(event) => setGroupId(event.target.value)}
+              />
             </label>
             <button
               type="button"
               className="btn primary load-button"
               onClick={handleCatalystLoad}
+              disabled={isLoading}
             >
-              Load from CATalyst
+              {isLoading ? 'Loading...' : 'Load from CATalyst'}
             </button>
           </div>
           <div className="data-grid" aria-live="polite">
-            {catalystData ? (
+            {isLoading ? (
+              <div className="empty-state span-12">Loading CATalyst data...</div>
+            ) : loadError ? (
+              <div className="empty-state error span-12">{loadError}</div>
+            ) : catalystData ? (
               <>
                 <div className="data-block span-12">
                   <p className="data-label">Research title</p>
-                  <p className="data-value">{catalystData.title}</p>
+                  <p className="data-value">{catalystData.title || 'N/A'}</p>
                 </div>
                 <div className="data-block span-12">
                   <p className="data-label">Rationale</p>
-                  <p className="data-value">{catalystData.rationale}</p>
+                  <p className="data-value">{catalystData.rationale || 'N/A'}</p>
                 </div>
                 <div className="data-block span-12">
                   <p className="data-label">Research gaps</p>
-                  <ul className="data-list">
-                    {catalystData.gaps.map((gap, index) => (
-                      <li key={`${gap}-${index}`}>{gap}</li>
-                    ))}
-                  </ul>
+                  {Array.isArray(catalystData.gaps) && catalystData.gaps.length ? (
+                    <ul className="data-list">
+                      {catalystData.gaps.map((gap, index) => (
+                        <li key={`${gap}-${index}`}>{gap}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="data-value">N/A</p>
+                  )}
                 </div>
               </>
             ) : hasSynced ? (

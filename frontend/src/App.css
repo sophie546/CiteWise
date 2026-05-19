@@ -745,6 +745,12 @@
   text-align: center;
 }
 
+.empty-state.error {
+  border-color: rgba(185, 28, 28, 0.4);
+  color: #b91c1c;
+  background: rgba(185, 28, 28, 0.08);
+}
+
 .upload-actions {
   display: flex;
   align-items: center;
