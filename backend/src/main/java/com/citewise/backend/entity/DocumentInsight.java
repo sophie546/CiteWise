@@ -1,8 +1,15 @@
 package com.citewise.backend.entity;
 
-import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "document_insights")
@@ -17,6 +24,7 @@ public class DocumentInsight {
     private Double methodologyScore;
     private Double theoreticalScore;
     private Double citationScore;
+    private Double averageOverallScore;
 
     @OneToMany(mappedBy = "documentInsight", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<EvidenceExcerpt> evidenceExcerpts = new ArrayList<>();
@@ -40,6 +48,9 @@ public class DocumentInsight {
 
     public Double getCitationScore() { return citationScore; }
     public void setCitationScore(Double citationScore) { this.citationScore = citationScore; }
+
+    public Double getAverageOverallScore() { return averageOverallScore; }
+    public void setAverageOverallScore(Double averageOverallScore) { this.averageOverallScore = averageOverallScore; }
 
     public List<EvidenceExcerpt> getEvidenceExcerpts() { return evidenceExcerpts; }
     public void setEvidenceExcerpts(List<EvidenceExcerpt> evidenceExcerpts) { this.evidenceExcerpts = evidenceExcerpts; }
