@@ -1,5 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
+
+const RRL_MAX_FILE_MB = 20
+const RRL_STORAGE_KEY = 'citewise.workspaceId'
 
 const ROUTES = [
   {
@@ -8,7 +11,23 @@ const ROUTES = [
     Icon: IntegrationIcon,
     component: ModuleOnePage,
   },
+  {
+    path: '/rrl-upload',
+    label: 'RRL Document Uploads',
+    Icon: UploadIcon,
+    component: RrlUploadPage,
+  },
 ]
+
+function formatFileSize(value) {
+  if (!value || Number.isNaN(value)) {
+    return ''
+  }
+  if (value < 1024 * 1024) {
+    return `${Math.round(value / 1024)} KB`
+  }
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`
+}
 
 function normalizePath(value) {
   if (!value || value === '/') {
@@ -172,6 +191,7 @@ function ModuleOnePage() {
       }
 
       setCatalystData(payload.data || null)
+      localStorage.setItem(RRL_STORAGE_KEY, trimmedGroupId)
     } catch (error) {
       setLoadError('Unable to reach CATalyst right now.')
     } finally {
@@ -181,16 +201,6 @@ function ModuleOnePage() {
 
   const clearFiles = () => {
     setFiles([])
-  }
-
-  const formatFileSize = (value) => {
-    if (!value || Number.isNaN(value)) {
-      return ''
-    }
-    if (value < 1024 * 1024) {
-      return `${Math.round(value / 1024)} KB`
-    }
-    return `${(value / (1024 * 1024)).toFixed(1)} MB`
   }
 
   return (
@@ -359,6 +369,333 @@ function ModuleOnePage() {
   )
 }
 
+function RrlUploadPage() {
+  const fileInputRef = useRef(null)
+  const [workspaceId, setWorkspaceId] = useState(
+    () => localStorage.getItem(RRL_STORAGE_KEY) || '',
+  )
+  const [fileQueue, setFileQueue] = useState([])
+  const [uploadState, setUploadState] = useState('ready')
+  const [statusMessage, setStatusMessage] = useState('Ready to upload')
+  const [isDragging, setIsDragging] = useState(false)
+
+  useEffect(() => {
+    if (workspaceId) {
+      localStorage.setItem(RRL_STORAGE_KEY, workspaceId)
+    }
+  }, [workspaceId])
+
+  const buildFileKey = (file) =>
+    `${file.name.toLowerCase()}-${file.size}-${file.lastModified}`
+
+  const describeStatus = (status) => {
+    switch (status) {
+      case 'queued':
+        return { label: 'Ready', tone: 'neutral' }
+      case 'uploading':
+        return { label: 'Uploading', tone: 'neutral' }
+      case 'uploaded':
+        return { label: 'Uploaded', tone: 'success' }
+      case 'failed':
+        return { label: 'Failed', tone: 'error' }
+      case 'invalid':
+        return { label: 'Rejected', tone: 'error' }
+      case 'duplicate':
+        return { label: 'Duplicate', tone: 'warn' }
+      default:
+        return { label: 'Queued', tone: 'neutral' }
+    }
+  }
+
+  const appendFiles = (incomingFiles) => {
+    if (!incomingFiles.length) {
+      return
+    }
+
+    setUploadState('ready')
+    setStatusMessage('Ready to upload')
+
+    setFileQueue((prev) => {
+      const next = [...prev]
+      const seenKeys = new Set(prev.map((item) => item.key))
+
+      Array.from(incomingFiles).forEach((file) => {
+        const key = buildFileKey(file)
+        const lowerName = file.name.toLowerCase()
+        const isPdf =
+          file.type === 'application/pdf' || lowerName.endsWith('.pdf')
+
+        let status = 'queued'
+        let message = 'Ready for upload'
+
+        if (!isPdf) {
+          status = 'invalid'
+          message = 'Unsupported file type'
+        } else if (file.size > RRL_MAX_FILE_MB * 1024 * 1024) {
+          status = 'invalid'
+          message = `File exceeds ${RRL_MAX_FILE_MB} MB limit`
+        } else if (seenKeys.has(key)) {
+          status = 'duplicate'
+          message = 'Duplicate file ignored'
+        }
+
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key)
+        }
+
+        next.push({
+          id: `${key}-${Math.random().toString(16).slice(2)}`,
+          key,
+          file,
+          name: file.name,
+          size: file.size,
+          status,
+          message,
+        })
+      })
+
+      return next
+    })
+  }
+
+  const handleDrop = (event) => {
+    event.preventDefault()
+    setIsDragging(false)
+    appendFiles(event.dataTransfer?.files || [])
+  }
+
+  const handleDragOver = (event) => {
+    event.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = () => {
+    setIsDragging(false)
+  }
+
+  const handleBrowse = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleUpload = async () => {
+    const readyFiles = fileQueue.filter((item) => item.status === 'queued')
+
+    if (!workspaceId.trim()) {
+      setUploadState('error')
+      setStatusMessage('Workspace session ID is required.')
+      return
+    }
+
+    if (!readyFiles.length) {
+      setUploadState('error')
+      setStatusMessage('Add at least one valid PDF before uploading.')
+      return
+    }
+
+    setUploadState('uploading')
+    setStatusMessage('Uploading...')
+    setFileQueue((prev) =>
+      prev.map((item) =>
+        item.status === 'queued'
+          ? { ...item, status: 'uploading', message: 'Uploading...' }
+          : item,
+      ),
+    )
+
+    const formData = new FormData()
+    readyFiles.forEach((item) => formData.append('files', item.file))
+
+    try {
+      const response = await fetch('/api/rrl/upload', {
+        method: 'POST',
+        headers: {
+          'X-Session-Id': workspaceId.trim(),
+        },
+        body: formData,
+      })
+
+      let payload = null
+      try {
+        payload = await response.json()
+      } catch (parseError) {
+        payload = null
+      }
+
+      if (!response.ok) {
+        setUploadState('error')
+        setStatusMessage(payload?.message || 'Upload failed.')
+        setFileQueue((prev) =>
+          prev.map((item) =>
+            item.status === 'uploading'
+              ? { ...item, status: 'failed', message: 'Upload failed' }
+              : item,
+          ),
+        )
+        return
+      }
+
+      const results = payload?.data?.results || []
+      const accepted = payload?.data?.acceptedFiles || 0
+      const failed = payload?.data?.failedFiles || 0
+      const hasFailures = failed > 0
+
+      setUploadState(hasFailures ? 'warning' : 'success')
+      setStatusMessage(
+        hasFailures
+          ? `Uploaded ${accepted} file(s), ${failed} need attention.`
+          : `Uploaded ${accepted} file(s) successfully.`,
+      )
+
+      setFileQueue((prev) =>
+        prev.map((item) => {
+          const match = results.find((result) => result.fileName === item.name)
+          if (!match) {
+            return item.status === 'uploading'
+              ? { ...item, status: 'failed', message: 'No response received' }
+              : item
+          }
+          return {
+            ...item,
+            status: match.success ? 'uploaded' : 'failed',
+            message: match.message,
+          }
+        }),
+      )
+    } catch (error) {
+      setUploadState('error')
+      setStatusMessage('Unable to reach the upload service.')
+      setFileQueue((prev) =>
+        prev.map((item) =>
+          item.status === 'uploading'
+            ? { ...item, status: 'failed', message: 'Network error' }
+            : item,
+        ),
+      )
+    }
+  }
+
+  const handleClear = () => {
+    setFileQueue([])
+    setUploadState('ready')
+    setStatusMessage('Ready to upload')
+  }
+
+  const readyCount = fileQueue.filter((item) => item.status === 'queued').length
+  const totalCount = fileQueue.length
+
+  return (
+    <div className="page">
+      <section className="grid">
+        <div className="card span-12 rrl-shell">
+          <div className="rrl-header">
+            <div>
+              <h2>RRL document upload</h2>
+              <p className="card-subtitle">
+                Upload candidate Review of Related Literature PDFs for parsing.
+              </p>
+            </div>
+            <label className="rrl-session">
+              <span>Workspace session ID</span>
+              <input
+                type="text"
+                value={workspaceId}
+                onChange={(event) => setWorkspaceId(event.target.value)}
+                placeholder="Paste session ID"
+              />
+            </label>
+          </div>
+
+          <div className="rrl-main">
+            <div
+              className={`rrl-dropzone${isDragging ? ' active' : ''}`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf"
+                multiple
+                onChange={(event) => appendFiles(event.target.files || [])}
+              />
+              <div className="rrl-drop-content">
+                <CloudIcon />
+                <p>Drop PDF files here</p>
+                <span>or</span>
+                <button type="button" className="rrl-browse" onClick={handleBrowse}>
+                  Browse
+                </button>
+                <small>Max {RRL_MAX_FILE_MB} MB per file</small>
+              </div>
+            </div>
+
+            <div className="rrl-selected">
+              <div className="rrl-selected-header">
+                <p>Selected files</p>
+                <span>{totalCount} in queue</span>
+              </div>
+              {fileQueue.length ? (
+                <ul className="rrl-file-list">
+                  {fileQueue.map((item) => {
+                    const { label, tone } = describeStatus(item.status)
+                    return (
+                      <li key={item.id} className="rrl-file">
+                        <div>
+                          <p className="rrl-file-name">{item.name}</p>
+                          <p className="rrl-file-meta">
+                            {formatFileSize(item.size)} · {item.message}
+                          </p>
+                        </div>
+                        <span className={`rrl-chip ${tone}`}>{label}</span>
+                      </li>
+                    )
+                  })}
+                </ul>
+              ) : (
+                <div className="rrl-empty">No files selected.</div>
+              )}
+            </div>
+          </div>
+
+          <div className="rrl-actions">
+            <div className="rrl-buttons">
+              <button
+                type="button"
+                className="btn primary"
+                onClick={handleUpload}
+                disabled={uploadState === 'uploading'}
+              >
+                {uploadState === 'uploading' ? 'Uploading...' : 'Upload All'}
+              </button>
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={handleClear}
+                disabled={!fileQueue.length || uploadState === 'uploading'}
+              >
+                Clear
+              </button>
+            </div>
+            <div className="rrl-status">
+              <div className="rrl-status-item">
+                <span className="rrl-status-label">Files ready</span>
+                <span className="rrl-status-value">{readyCount}</span>
+              </div>
+              <div className="rrl-status-item">
+                <span className="rrl-status-label">Status</span>
+                <span className={`rrl-status-value ${uploadState}`}>
+                  {statusMessage}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
 
 function SearchIcon() {
   return (
@@ -402,6 +739,60 @@ function IntegrationIcon() {
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function UploadIcon() {
+  return (
+    <svg
+      className="icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M12 16V5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M7 9l5-5 5 5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4 19h16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function CloudIcon() {
+  return (
+    <svg
+      className="rrl-cloud"
+      viewBox="0 0 48 32"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M14 26h21a9 9 0 0 0 0-18 11 11 0 0 0-21-2A8 8 0 0 0 14 26Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   )
