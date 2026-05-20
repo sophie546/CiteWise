@@ -15,6 +15,10 @@ export default function QuickNavigationList({
         flexDirection: "column",
         gap: "14px",
         boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
+        /* Grow naturally with content, but never exceed the column height */
+        maxHeight: '100%',
+        minHeight: 0,
+        overflowY: 'auto',
       }}
     >
       {/* Section Header */}

@@ -77,10 +77,11 @@ export default function DocumentActiveCard({
         background: "#1E1C19",
         border: "1px solid #3A3630",
         borderRadius: "16px",
-        padding: "20px",
+        padding: 0,
         display: "flex",
         flexDirection: "column",
         boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
+        overflow: "hidden",
       }}
     >
       {/* Header: doc count + pagination */}
@@ -89,7 +90,10 @@ export default function DocumentActiveCard({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: "14px",
+          marginBottom: 0,
+          padding: "1.125rem 1.5rem",
+          background: "rgba(0, 0, 0, 0.15)",
+          borderBottom: "1px solid #3A3630",
         }}
       >
         <span
@@ -135,25 +139,20 @@ export default function DocumentActiveCard({
         </div>
       </div>
 
-      {/* Separator line stretching fully to borders */}
-      <div
-        style={{
-          height: "1px",
-          background: "#3A3630",
-          margin: "0 -20px 20px -20px",
-        }}
-      />
+      <div style={{ padding: "12px 20px 20px 20px" }}>
 
-      {/* Document Info - Flat layout */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "14px",
-          marginBottom: "20px",
-          padding: "0 4px",
-        }}
-      >
+        {/* Separator removed as requested */}
+
+        {/* Document Info - Flat layout */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "14px",
+            marginBottom: "20px",
+            padding: "0 4px",
+          }}
+        >
         {/* PDF folding dog-ear icon */}
         <div
           style={{
@@ -221,11 +220,12 @@ export default function DocumentActiveCard({
         </div>
       </div>
 
-      {/* Approval Toggle */}
-      <ApprovalToggle
-        isApproved={doc.approved}
-        onToggle={() => onApprovalToggle && onApprovalToggle(currentIndex)}
-      />
+        {/* Approval Toggle */}
+        <ApprovalToggle
+          isApproved={doc.approved}
+          onToggle={() => onApprovalToggle && onApprovalToggle(currentIndex)}
+        />
+      </div>
     </div>
   );
 }

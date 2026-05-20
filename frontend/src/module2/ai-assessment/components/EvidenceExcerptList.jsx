@@ -24,7 +24,7 @@ const ExcerptItem = ({ index, quote, page, relevance }) => {
       style={{
         display: "flex",
         gap: "14px",
-        padding: "18px 0",
+        padding: "18px 16px",
         borderBottom: "1px solid #3A3630",
       }}
     >
@@ -92,7 +92,7 @@ const ExcerptItem = ({ index, quote, page, relevance }) => {
               color: "#8a8278",
             }}
           >
-            Relevance:{" "}
+            Relevance: {" "}
             <span
               style={{
                 color: color,
@@ -116,11 +116,11 @@ const EvidenceExcerptList = ({ excerpts }) => {
         {/* Header always visible */}
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            marginBottom: "8px",
-          }}
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                marginBottom: "8px",
+              }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D98A21" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
             <path d="M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.89a.5.5 0 0 0 .22.96h11.34a.5.5 0 0 0 .22-.96l-1.78-.89a2 2 0 0 1-1.11-1.79V5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5.76z" />

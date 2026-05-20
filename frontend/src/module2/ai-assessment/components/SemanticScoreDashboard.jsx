@@ -28,7 +28,7 @@ const ScoreBar = ({ label, value }) => {
     >
       <span
         style={{
-          fontFamily: "'Geist Mono', monospace",
+          fontFamily: "'Poppins', sans-serif",
           fontSize: "12px",
           color: "#8a8278",
           whiteSpace: "nowrap",
