@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import GlobalNavigationBar from "./shared/components/GlobalNavigationBar";
 import WorkspaceImportLayout from "./module1/catalyst-import/components/WorkspaceImportLayout";
 import ValidationDashboardLayout from "./module2/literature-review/components/ValidationDashboardLayout";
@@ -15,9 +15,24 @@ import LandingPage from "./landing_page/LandingPage";
  *
  */
 export default function App() {
-  const [step, setStep] = useState(-1);
-  const [sessionId, setSessionId] = useState("");
+  const [step, setStep] = useState(() => {
+    const saved = localStorage.getItem("citewise.step");
+    return saved !== null ? parseInt(saved, 10) : -1;
+  });
+  const [sessionId, setSessionId] = useState(() => {
+    return localStorage.getItem("citewise.sessionId") || "";
+  });
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem("citewise.step", step.toString());
+  }, [step]);
+
+  useEffect(() => {
+    if (sessionId) {
+      localStorage.setItem("citewise.sessionId", sessionId);
+    }
+  }, [sessionId]);
 
   const handleGetStarted = () => {
     setIsLoading(true);
