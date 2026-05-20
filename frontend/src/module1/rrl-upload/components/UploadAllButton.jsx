@@ -19,19 +19,19 @@ export default function UploadAllButton({ onClick, isUploading, disabled }) {
         transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
         width: "100%",
         opacity: (disabled || isUploading) ? 0.5 : 1,
-        boxShadow: "0 4px 12px rgba(216, 90, 48, 0.2)",
+        boxShadow: "0 4px 12px rgba(216, 90, 48, 0.25)",
       }}
       onMouseEnter={(e) => {
         if (!disabled && !isUploading) {
-          e.currentTarget.style.background = "#c24e27";
-          e.currentTarget.style.boxShadow = "0 6px 16px rgba(216, 90, 48, 0.35)";
+          e.currentTarget.style.background = "#e96439";
+          e.currentTarget.style.boxShadow = "0 6px 16px rgba(216, 90, 48, 0.4)";
           e.currentTarget.style.transform = "translateY(-1px)";
         }
       }}
       onMouseLeave={(e) => {
         if (!disabled && !isUploading) {
           e.currentTarget.style.background = "#D85A30";
-          e.currentTarget.style.boxShadow = "0 4px 12px rgba(216, 90, 48, 0.2)";
+          e.currentTarget.style.boxShadow = "0 4px 12px rgba(216, 90, 48, 0.25)";
           e.currentTarget.style.transform = "translateY(0)";
         }
       }}

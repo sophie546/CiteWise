@@ -46,7 +46,7 @@ const CTASection = ({ onGetStarted, isLoading }) => {
         opacity: isVisible ? 1 : 0,
       }}>
         Ready to write smarter research?<br />
-        <span style={{ color: "#ff6a20", display: "inline-block" }}>Start today.</span>
+        <span style={{ color: "#D98A21", display: "inline-block" }}>Start today.</span>
       </h2>
       
       <p style={{ 
@@ -64,7 +64,7 @@ const CTASection = ({ onGetStarted, isLoading }) => {
           onClick={() => handleButtonClick('cta-get-started')}
           style={{
             ...getButtonStyle('cta-get-started'),
-            background: "#ff6a20",
+            background: "#D85A30",
             color: "white",
             border: "none",
             padding: "12px 32px",
@@ -81,12 +81,14 @@ const CTASection = ({ onGetStarted, isLoading }) => {
           onMouseEnter={(e) => {
             if (!clickedButton) {
               e.target.style.transform = "translateY(-3px) scale(1.05)"
-              e.target.style.boxShadow = "0 12px 32px rgba(255,106,32,0.4)"
+              e.target.style.background = "#e96439"
+              e.target.style.boxShadow = "0 12px 32px rgba(216,90,48,0.4)"
             }
           }}
           onMouseLeave={(e) => {
             if (!clickedButton) {
               e.target.style.transform = "translateY(0) scale(1)"
+              e.target.style.background = "#D85A30"
               e.target.style.boxShadow = "none"
             }
           }}
@@ -155,9 +157,7 @@ const CTASection = ({ onGetStarted, isLoading }) => {
         </button>
       </div>
 
-      <img
-        src="/src/assets/logo.png"
-        alt="logo"
+      <div
         style={{
           position: "absolute",
           right: "0",
@@ -165,15 +165,46 @@ const CTASection = ({ onGetStarted, isLoading }) => {
           transform: logoHover ? "translateY(-50%) scale(1.1) rotate(5deg)" : "translateY(-50%)",
           width: "80px",
           height: "80px",
-          objectFit: "cover",
-          opacity: logoHover ? 0.5 : 0.3,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: "20px",
+          background: "#3A3630",
+          border: "1px solid rgba(217, 138, 33, 0.2)",
+          boxShadow: "0 12px 32px rgba(0, 0, 0, 0.4)",
+          opacity: logoHover ? 0.4 : 0.2,
           pointerEvents: "none",
           transition: "all 0.4s cubic-bezier(0.23, 1, 0.320, 1)",
           animation: isVisible ? "fadeIn 0.8s ease-out 0.4s forwards" : "none",
         }}
         onMouseEnter={() => setLogoHover(true)}
         onMouseLeave={() => setLogoHover(false)}
-      />
+      >
+        <svg width="45" height="45" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M12 2L2 7L12 12L22 7L12 2Z"
+            stroke="#D98A21"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M2 17L12 22L22 17"
+            stroke="#D85A30"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M2 12L12 17L22 12"
+            stroke="#D98A21"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity="0.8"
+          />
+        </svg>
+      </div>
 
       <style>{`
         @keyframes spin {

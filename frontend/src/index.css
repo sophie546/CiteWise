@@ -34,7 +34,7 @@
 body {
   margin: 0;
   min-height: 100svh;
-  background: #141210;
+  background: #1E1C19;
   color: var(--ink-700);
   overflow-x: hidden;
 }

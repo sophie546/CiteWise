@@ -28,7 +28,7 @@ export default function App() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#1a1714" }}>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#1E1C19" }}>
 
       {step !== -1 && <GlobalNavigationBar currentStep={step} onNavigate={setStep} />}
 

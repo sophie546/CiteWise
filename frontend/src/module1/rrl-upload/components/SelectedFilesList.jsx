@@ -6,7 +6,7 @@ function formatFileSize(bytes) {
 
 const statusConfig = {
   queued:    { label: "Ready",     tone: "neutral", color: "#D98A21", bg: "rgba(217, 138, 33, 0.12)" },
-  uploading: { label: "Uploading", tone: "neutral", color: "#D85A30", bg: "rgba(216, 90, 48, 0.12)" },
+  uploading: { label: "Uploading", tone: "neutral", color: "#D98A21", bg: "rgba(217, 138, 33, 0.18)" },
   uploaded:  { label: "Uploaded",  tone: "success", color: "#4caf82", bg: "rgba(76,175,130,0.15)" },
   failed:    { label: "Failed",    tone: "error",   color: "#e05555", bg: "rgba(224,85,85,0.15)" },
   invalid:   { label: "Rejected",  tone: "error",   color: "#e05555", bg: "rgba(224,85,85,0.15)" },
@@ -56,7 +56,7 @@ export default function SelectedFilesList({ files, onRemove }) {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              background: "#1E1C19",
+              background: "rgba(0, 0, 0, 0.15)",
               border: "1px solid #3A3630",
               borderRadius: "8px",
               padding: "0.5rem 0.75rem",

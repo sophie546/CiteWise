@@ -44,7 +44,7 @@ export default function DragDropZone({ onFilesAdded }) {
   return (
     <div
       style={{
-        border: `1.5px dashed ${isDragging ? "#D98A21" : "#3A3630"}`,
+        border: `1.5px dashed ${isDragging ? "#D85A30" : "#3A3630"}`,
         borderRadius: "12px",
         display: "flex",
         flexDirection: "column",
@@ -56,7 +56,7 @@ export default function DragDropZone({ onFilesAdded }) {
         transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
         minHeight: "200px",
         textAlign: "center",
-        background: isDragging ? "rgba(217, 138, 33, 0.04)" : "#12100E",
+        background: isDragging ? "rgba(216, 90, 48, 0.05)" : "rgba(0, 0, 0, 0.15)",
       }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -64,7 +64,7 @@ export default function DragDropZone({ onFilesAdded }) {
       onClick={handleBrowse}
       onMouseEnter={(e) => {
         if (!isDragging) {
-          e.currentTarget.style.borderColor = "#D98A21";
+          e.currentTarget.style.borderColor = "#D85A30";
           const icon = e.currentTarget.querySelector(".cloud-icon");
           if (icon) icon.style.transform = "translateY(-3px)";
         }
@@ -95,7 +95,7 @@ export default function DragDropZone({ onFilesAdded }) {
           fontFamily: "'Poppins', sans-serif",
         }}
       >
-        Drop PDF files here
+        Drop PDF files here or click to browse
       </p>
       <small
         style={{
@@ -107,38 +107,6 @@ export default function DragDropZone({ onFilesAdded }) {
       >
         Multiple files supported
       </small>
-      <button
-        type="button"
-        style={{
-          background: "#12100E",
-          border: "1.5px solid #D85A30",
-          borderRadius: "8px",
-          color: "#f0ece6",
-          fontSize: "0.85rem",
-          fontWeight: 700,
-          fontFamily: "'Poppins', sans-serif",
-          padding: "0.5rem 2rem",
-          cursor: "pointer",
-          marginTop: "0.75rem",
-          transition: "all 0.2s ease",
-          outline: "none",
-          boxShadow: "0 4px 12px rgba(216, 90, 48, 0.1)",
-        }}
-        onClick={(e) => {
-          e.stopPropagation();
-          handleBrowse();
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = "#D85A30";
-          e.currentTarget.style.boxShadow = "0 6px 16px rgba(216, 90, 48, 0.3)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = "#12100E";
-          e.currentTarget.style.boxShadow = "0 4px 12px rgba(216, 90, 48, 0.1)";
-        }}
-      >
-        Or Browse
-      </button>
     </div>
   );
 }

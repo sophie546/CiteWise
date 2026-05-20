@@ -19,19 +19,19 @@ export default function ConnectImportButton({ onClick, isLoading }) {
         whiteSpace: "nowrap",
         transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
         opacity: isLoading ? 0.6 : 1,
-        boxShadow: "0 4px 12px rgba(216, 90, 48, 0.2)",
+        boxShadow: "0 4px 12px rgba(216, 90, 48, 0.25)",
       }}
       onMouseEnter={(e) => {
         if (!isLoading) {
-          e.currentTarget.style.background = "#c24e27";
-          e.currentTarget.style.boxShadow = "0 6px 16px rgba(216, 90, 48, 0.35)";
+          e.currentTarget.style.background = "#e96439";
+          e.currentTarget.style.boxShadow = "0 6px 16px rgba(216, 90, 48, 0.4)";
           e.currentTarget.style.transform = "translateY(-1px)";
         }
       }}
       onMouseLeave={(e) => {
         if (!isLoading) {
           e.currentTarget.style.background = "#D85A30";
-          e.currentTarget.style.boxShadow = "0 4px 12px rgba(216, 90, 48, 0.2)";
+          e.currentTarget.style.boxShadow = "0 4px 12px rgba(216, 90, 48, 0.25)";
           e.currentTarget.style.transform = "translateY(0)";
         }
       }}

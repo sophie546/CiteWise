@@ -37,6 +37,7 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
   const [fileQueue, setFileQueue] = useState([]);
   const [uploadState, setUploadState] = useState("ready");
   const [statusMessage, setStatusMessage] = useState("Ready to upload");
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
 
   // ── CATalyst Import ────────────────────────────────────────────
   const handleImport = async () => {
@@ -153,9 +154,10 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
       );
       // Proceed automatically if upload succeeded fully
       if (failed === 0 && accepted > 0) {
+        setShowSuccessToast(true);
         setTimeout(() => {
           onProceed?.();
-        }, 1500);
+        }, 2200);
       }
     } catch (err) {
       setUploadState("error");
@@ -174,6 +176,93 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
       {styleInject}
+
+      {showSuccessToast && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(14, 12, 10, 0.75)",
+          backdropFilter: "blur(12px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 9999,
+          animation: "fadeInToast 0.3s ease-out forwards",
+        }}>
+          <div style={{
+            background: "#1E1C19",
+            border: "1px solid rgba(217, 138, 33, 0.25)",
+            borderRadius: "24px",
+            padding: "2.5rem 3rem",
+            maxWidth: "480px",
+            width: "90%",
+            textAlign: "center",
+            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(216, 90, 48, 0.15)",
+            animation: "scaleInToast 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
+          }}>
+            {/* Animated Ring & Checkmark */}
+            <div style={{
+              width: "80px",
+              height: "80px",
+              borderRadius: "50%",
+              background: "rgba(216, 90, 48, 0.1)",
+              border: "2px solid #D85A30",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 1.5rem",
+              boxShadow: "0 0 20px rgba(216, 90, 48, 0.2)",
+              animation: "pulseRing 2s infinite",
+            }}>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#D98A21" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" style={{
+                  strokeDasharray: 50,
+                  strokeDashoffset: 50,
+                  animation: "drawCheckmark 0.6s ease-out 0.2s forwards",
+                }} />
+              </svg>
+            </div>
+
+            <h3 style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: 800,
+              fontSize: "1.5rem",
+              color: "#f0ece6",
+              margin: "0 0 0.5rem 0",
+              letterSpacing: "0.01em",
+            }}>
+              Upload Complete
+            </h3>
+
+            <p style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "0.95rem",
+              color: "rgba(240, 236, 230, 0.7)",
+              lineHeight: "1.6",
+              margin: "0 0 1.75rem 0",
+            }}>
+              Your research literature has been successfully synchronized. Preparing the validation dashboard.
+            </p>
+
+            {/* Premium Loader/Progress Indicator bar */}
+            <div style={{
+              width: "100%",
+              height: "4px",
+              background: "rgba(255, 255, 255, 0.08)",
+              borderRadius: "2px",
+              overflow: "hidden",
+            }}>
+              <div style={{
+                height: "100%",
+                background: "linear-gradient(90deg, #D98A21, #D85A30)",
+                width: "0%",
+                borderRadius: "2px",
+                animation: "fillProgress 2.2s linear forwards",
+              }} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Card 1: CATalyst Data Import ─────────────────────────── */}
       <div style={card}>
@@ -217,7 +306,7 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
           {/* Selected Files panel */}
           <div
             style={{
-              background: "#12100E",
+              background: "rgba(0, 0, 0, 0.15)",
               border: "1px solid #3A3630",
               borderRadius: "12px",
               padding: "1.25rem",
@@ -242,11 +331,11 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
                 </span>
               )}
             </div>
-            
+
             {/* Light black inner list container */}
             <div
               style={{
-                background: "#1E1C19",
+                background: "rgba(0, 0, 0, 0.15)",
                 borderRadius: "8px",
                 flex: 1,
                 display: "flex",
@@ -284,10 +373,31 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
 
 // Style injection to handle page-wide premium animations
 const styleInject = (
-  <style dangerouslySetInnerHTML={{__html: `
+  <style dangerouslySetInnerHTML={{
+    __html: `
     @keyframes cardFadeIn {
       from { opacity: 0; transform: translateY(12px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeInToast {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes scaleInToast {
+      from { opacity: 0; transform: scale(0.9) translateY(20px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    @keyframes drawCheckmark {
+      to { stroke-dashoffset: 0; }
+    }
+    @keyframes pulseRing {
+      0% { box-shadow: 0 0 0 0 rgba(216, 90, 48, 0.4); }
+      70% { box-shadow: 0 0 0 12px rgba(216, 90, 48, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(216, 90, 48, 0); }
+    }
+    @keyframes fillProgress {
+      from { width: 0%; }
+      to { width: 100%; }
     }
   `}} />
 );
@@ -296,10 +406,10 @@ const styleInject = (
 const card = {
   background: "#1E1C19",
   border: "1px solid #3A3630",
-  borderRadius: "12px",
+  borderRadius: "16px",
   overflow: "hidden",
   animation: "cardFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both",
-  boxShadow: "0 8px 30px rgba(0, 0, 0, 0.35)",
+  boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
 };
 
 const cardHeader = {
@@ -309,7 +419,7 @@ const cardHeader = {
   padding: "1.125rem 1.5rem",
   borderBottom: "1px solid #3A3630",
   gap: "1rem",
-  background: "#12100E",
+  background: "rgba(0, 0, 0, 0.15)",
 };
 
 const cardTitle = {

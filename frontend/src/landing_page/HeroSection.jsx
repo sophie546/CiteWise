@@ -155,10 +155,9 @@ const HeroSection = ({ documents, onToggleApproval, onGenerateIntro, introText, 
             top: "50%",
             left: "50%",
             transform: `translate(-50%, calc(-50% + ${sunOffset}px))`,
-            width: "150%",
-            maxWidth: "1800px",
-            height: "auto",
-            objectFit: "contain",
+            width: "100vw",
+            height: "120vh",
+            objectFit: "cover",
             zIndex: 0,
             transition: "transform 0.1s linear",
           }}
@@ -168,7 +167,7 @@ const HeroSection = ({ documents, onToggleApproval, onGenerateIntro, introText, 
         <div style={{
           position: "absolute",
           inset: 0,
-          background: "linear-gradient(to bottom, rgba(14,13,11,0.55) 0%, rgba(14,13,11,0.1) 35%, rgba(14,13,11,0.6) 75%, #0E0D0B 100%)",
+          background: "linear-gradient(to bottom, rgba(30,28,25,0.55) 0%, rgba(30,28,25,0.1) 35%, rgba(30,28,25,0.6) 75%, #1E1C19 100%)",
           zIndex: 1,
           animation: heroLoaded ? "fadeIn 1s ease-out forwards" : "none",
         }} />
@@ -182,24 +181,53 @@ const HeroSection = ({ documents, onToggleApproval, onGenerateIntro, introText, 
           alignItems: "center",
           padding: "22px 56px",
           borderBottom: "1px solid rgba(255,255,255,0.08)",
-          background: "rgba(14,13,11,0.85)",
+          background: "rgba(30,28,25,0.85)",
           backdropFilter: "blur(8px)",
           animation: heroLoaded ? "fadeInDown 0.6s ease-out forwards" : "none",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <img
-              src="/src/assets/logo.png"
-              alt="logo"
+            <div
               style={{
-                width: "36px", height: "36px",
-                objectFit: "cover",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "32px",
+                height: "32px",
                 borderRadius: "8px",
-                opacity: 0.9,
-                transition: "transform 0.3s ease",
+                background: "#3A3630",
+                border: "1px solid rgba(217, 138, 33, 0.2)",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+                transition: "transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                cursor: "pointer",
               }}
-              onMouseEnter={(e) => e.target.style.transform = "scale(1.1) rotate(5deg)"}
-              onMouseLeave={(e) => e.target.style.transform = "scale(1) rotate(0)"}
-            />
+              onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.08) rotate(5deg)")}
+              onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1) rotate(0deg)")}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M12 2L2 7L12 12L22 7L12 2Z"
+                  stroke="#D98A21"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M2 17L12 22L22 17"
+                  stroke="#D85A30"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M2 12L12 17L22 12"
+                  stroke="#D98A21"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  opacity="0.8"
+                />
+              </svg>
+            </div>
             <span style={{
               fontFamily: "'Poppins', sans-serif",
               color: "white",
@@ -254,7 +282,7 @@ const HeroSection = ({ documents, onToggleApproval, onGenerateIntro, introText, 
             onMouseEnter={(e) => {
               if (!clickedButton) {
                 e.target.style.transform = "translateY(-2px)"
-                e.target.style.boxShadow = "0 12px 24px rgba(255,106,32,0.3)"
+                 e.target.style.boxShadow = "0 12px 24px rgba(216,90,48,0.3)"
               }
             }}
             onMouseLeave={(e) => {
@@ -270,7 +298,7 @@ const HeroSection = ({ documents, onToggleApproval, onGenerateIntro, introText, 
                 width: "16px",
                 height: "16px",
                 border: "2px solid rgba(0,0,0,0.2)",
-                borderTop: "2px solid #ff6a20",
+                borderTop: "2px solid #D85A30",
                 borderRadius: "50%",
                 animation: "spin 0.6s linear infinite",
               }} />
@@ -326,7 +354,7 @@ const HeroSection = ({ documents, onToggleApproval, onGenerateIntro, introText, 
             animation: heroLoaded ? "fadeInUp 0.8s ease-out 0.3s forwards" : "none",
             opacity: heroLoaded ? 1 : 0,
           }}>
-            Meet <span style={{ color: "#ff6a20", fontWeight: "700", transition: "all 0.3s ease" }}>CiteWise</span>
+            Meet <span style={{ color: "#D98A21", fontWeight: "700", transition: "all 0.3s ease" }}>CiteWise</span>
           </div>
 
           <div style={{
@@ -381,7 +409,7 @@ const HeroSection = ({ documents, onToggleApproval, onGenerateIntro, introText, 
             onMouseEnter={(e) => {
               if (!clickedButton) {
                 e.target.style.transform = "translateY(-3px)"
-                e.target.style.boxShadow = "0 16px 32px rgba(255,106,32,0.4)"
+                 e.target.style.boxShadow = "0 16px 32px rgba(216,90,48,0.4)"
               }
             }}
             onMouseLeave={(e) => {
@@ -397,7 +425,7 @@ const HeroSection = ({ documents, onToggleApproval, onGenerateIntro, introText, 
                 width: "14px",
                 height: "14px",
                 border: "2px solid rgba(0,0,0,0.2)",
-                borderTop: "2px solid #ff6a20",
+                borderTop: "2px solid #D85A30",
                 borderRadius: "50%",
                 animation: "spin 0.6s linear infinite",
               }} />
@@ -438,7 +466,7 @@ const HeroSection = ({ documents, onToggleApproval, onGenerateIntro, introText, 
         transition: "all 0.8s ease-out",
       }}>
         <div style={{
-          background: "#0E0D0B",
+          background: "#1E1C19",
           border: "1px solid rgba(255,100,0,0.35)",
           borderRadius: "16px",
           overflow: "hidden",
@@ -508,9 +536,9 @@ const HeroSection = ({ documents, onToggleApproval, onGenerateIntro, introText, 
                 animation: dashboardVisible ? "fadeInUp 0.6s ease-out 0.2s forwards" : "none",
                 opacity: dashboardVisible ? 1 : 0,
               }}>
-                <div style={{ fontSize: "0.6rem", color: "#ff6a20", fontWeight: "700", marginBottom: "5px" }}>APPROVAL STATUS</div>
+                <div style={{ fontSize: "0.6rem", color: "#D98A21", fontWeight: "700", marginBottom: "5px" }}>APPROVAL STATUS</div>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <div style={{ width: "28px", height: "14px", background: "#ff6a20", borderRadius: "7px", position: "relative" }}>
+                  <div style={{ width: "28px", height: "14px", background: "#D85A30", borderRadius: "7px", position: "relative" }}>
                     <div style={{ position: "absolute", right: "2px", top: "2px", width: "10px", height: "10px", background: "white", borderRadius: "50%", transition: "all 0.3s ease" }} />
                   </div>
                   <span style={{ fontSize: "0.62rem", color: "rgba(255,255,255,0.55)" }}>Approved</span>
@@ -535,7 +563,7 @@ const HeroSection = ({ documents, onToggleApproval, onGenerateIntro, introText, 
                   <span style={{ fontSize: "0.62rem", color: "rgba(255,255,255,0.55)" }}>{doc.name}</span>
                   <span style={{
                     width: "7px", height: "7px", borderRadius: "50%",
-                    background: doc.approved ? "#ff6a20" : "rgba(255,255,255,0.15)",
+                    background: doc.approved ? "#D98A21" : "rgba(255,255,255,0.15)",
                     display: "inline-block",
                     transition: "all 0.3s ease",
                   }} />
@@ -614,7 +642,7 @@ const HeroSection = ({ documents, onToggleApproval, onGenerateIntro, introText, 
                             display: "inline-block",
                             width: "2px",
                             height: "0.65em",
-                            background: "#ff6a20",
+                            background: "#D98A21",
                             marginLeft: "2px",
                             animation: "blink 1s infinite",
                           }} />
@@ -658,10 +686,10 @@ const HeroSection = ({ documents, onToggleApproval, onGenerateIntro, introText, 
                       <div style={{ 
                         height: "100%", 
                         width: `${counters[item.key]}%`, 
-                        background: "#ff6a20", 
+                         background: "#D85A30", 
                         borderRadius: "3px", 
                         transition: "width 0.05s linear",
-                        boxShadow: `0 0 8px rgba(255,106,32,0.6)`
+                         boxShadow: `0 0 8px rgba(216,90,48,0.6)`
                       }} />
                     </div>
                   </div>
@@ -680,16 +708,16 @@ const HeroSection = ({ documents, onToggleApproval, onGenerateIntro, introText, 
           <div style={{
             display: "flex", justifyContent: "space-between", alignItems: "center",
             padding: "12px 20px", borderTop: "1px solid rgba(255,255,255,0.06)",
-            background: "rgba(14,13,11,0.8)",
+            background: "rgba(30,28,25,0.8)",
             animation: dashboardVisible ? "fadeInUp 0.6s ease-out 0.6s forwards" : "none",
             opacity: dashboardVisible ? 1 : 0,
           }}>
             <div style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.45)" }}>
               Approved Documents <span style={{ color: "white", fontWeight: "700" }}>1 / 3</span>
-              &nbsp;&nbsp;Average Score <span style={{ color: "#ff8a42", fontWeight: "700" }}>85.75%</span>
+              &nbsp;&nbsp;Average Score <span style={{ color: "#D98A21", fontWeight: "700" }}>85.75%</span>
             </div>
-            <button style={{
-              background: "#ff6a20", color: "white", border: "none",
+             <button style={{
+              background: "#D85A30", color: "white", border: "none",
               padding: "8px 20px", borderRadius: "8px",
               fontSize: "0.72rem", fontWeight: "700", cursor: "pointer",
               transition: "all 0.3s ease",
@@ -697,10 +725,12 @@ const HeroSection = ({ documents, onToggleApproval, onGenerateIntro, introText, 
             onClick={onGenerateIntro}
             onMouseEnter={(e) => {
               e.target.style.transform = "translateY(-2px)"
-              e.target.style.boxShadow = "0 8px 20px rgba(255,106,32,0.4)"
+              e.target.style.background = "#e96439"
+              e.target.style.boxShadow = "0 8px 20px rgba(216,90,48,0.4)"
             }}
             onMouseLeave={(e) => {
               e.target.style.transform = "translateY(0)"
+              e.target.style.background = "#D85A30"
               e.target.style.boxShadow = "none"
             }}
             >→ Proceed to Synthesis</button>

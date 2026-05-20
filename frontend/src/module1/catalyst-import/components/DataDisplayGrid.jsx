@@ -30,54 +30,66 @@ export default function DataDisplayGrid({ catalystData, isLoading, error, hasAtt
   return (
     <div
       style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(3, 1fr)",
+        display: "flex",
+        flexDirection: "column",
         gap: "1.25rem",
         padding: "1.25rem 1.5rem",
       }}
     >
+      {/* Research Title at the top spanning full width */}
       <DataColumn
         label="Research Title"
         value={catalystData?.title}
         isLoading={isLoading}
         hasAttempted={hasAttempted}
+        isTitleRow
       />
-      <DataColumn
-        label="Rationale"
-        value={catalystData?.rationale}
-        isLoading={isLoading}
-        hasAttempted={hasAttempted}
-      />
-      <DataColumn
-        label="Research Gap"
-        value={catalystData?.gaps}
-        isLoading={isLoading}
-        hasAttempted={hasAttempted}
-        isList
-      />
+
+      {/* Rationale and Research Gap in a 2-column layout */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "1.25rem",
+        }}
+      >
+        <DataColumn
+          label="Rationale"
+          value={catalystData?.rationale}
+          isLoading={isLoading}
+          hasAttempted={hasAttempted}
+        />
+        <DataColumn
+          label="Research Gap"
+          value={catalystData?.gaps}
+          isLoading={isLoading}
+          hasAttempted={hasAttempted}
+          isList
+        />
+      </div>
     </div>
   );
 }
 
 // ── Inner column ─────────────────────────────────────────────────
-function DataColumn({ label, value, isLoading, hasAttempted, isList }) {
+function DataColumn({ label, value, isLoading, hasAttempted, isList, isTitleRow }) {
   return (
     <div
       style={{
-        background: "#12100E",
+        background: "rgba(0, 0, 0, 0.15)",
         border: "1px solid #3A3630",
         borderRadius: "12px",
         padding: "1.25rem",
         display: "flex",
         flexDirection: "column",
         gap: "1rem",
-        minHeight: "240px",
+        minHeight: isTitleRow ? "120px" : "240px",
         transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.borderColor = "#D98A21";
         e.currentTarget.style.transform = "translateY(-2px)";
-        e.currentTarget.style.boxShadow = "0 6px 20px rgba(0, 0, 0, 0.4)";
+        e.currentTarget.style.boxShadow = "0 6px 20px rgba(217, 138, 33, 0.08)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.borderColor = "#3A3630";
@@ -103,9 +115,7 @@ function DataColumn({ label, value, isLoading, hasAttempted, isList }) {
       {/* Light black inner value container */}
       <div
         style={{
-          background: "#1E1C19",
-          borderRadius: "8px",
-          padding: "1rem",
+          background: "none",
           flex: 1,
           display: "flex",
           flexDirection: "column",
@@ -116,7 +126,7 @@ function DataColumn({ label, value, isLoading, hasAttempted, isList }) {
         {isLoading ? (
           <p
             style={{
-              fontSize: "0.85rem",
+              fontSize: isTitleRow ? "1.05rem" : "0.85rem",
               color: "rgba(240, 236, 230, 0.4)",
               fontStyle: "italic",
               margin: 0,
@@ -156,9 +166,10 @@ function DataColumn({ label, value, isLoading, hasAttempted, isList }) {
         ) : value ? (
           <p
             style={{
-              fontSize: "0.85rem",
+              fontSize: isTitleRow ? "1.15rem" : "0.85rem",
+              fontWeight: isTitleRow ? "600" : "400",
               color: "#f0ece6",
-              lineHeight: 1.65,
+              lineHeight: isTitleRow ? 1.45 : 1.65,
               margin: 0,
               fontFamily: "'Poppins', sans-serif",
             }}
@@ -168,7 +179,7 @@ function DataColumn({ label, value, isLoading, hasAttempted, isList }) {
         ) : (
           <p
             style={{
-              fontSize: "0.85rem",
+              fontSize: isTitleRow ? "1.05rem" : "0.85rem",
               color: "rgba(240, 236, 230, 0.4)",
               fontStyle: "italic",
               margin: 0,

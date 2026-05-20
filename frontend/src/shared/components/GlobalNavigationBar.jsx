@@ -97,7 +97,6 @@ export default function GlobalNavigationBar({ currentStep = 0, onNavigate }) {
                 style={{
                   background: "none",
                   border: "none",
-                  borderBottom: isActive ? "3px solid #f0ece6" : "3px solid transparent",
                   cursor: isClickable ? "pointer" : "default",
                   fontFamily: "'Poppins', sans-serif",
                   fontSize: "0.875rem",
@@ -114,13 +113,11 @@ export default function GlobalNavigationBar({ currentStep = 0, onNavigate }) {
                 onMouseEnter={(e) => {
                   if (!isActive) {
                     e.currentTarget.style.color = "#f0ece6";
-                    e.currentTarget.style.borderBottom = "3px solid rgba(240, 236, 230, 0.4)";
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isActive) {
                     e.currentTarget.style.color = isPast ? "rgba(240, 236, 230, 0.8)" : "rgba(240, 236, 230, 0.4)";
-                    e.currentTarget.style.borderBottom = "3px solid transparent";
                   }
                 }}
               >

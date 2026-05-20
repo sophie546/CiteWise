@@ -17,8 +17,8 @@ function FilledDocumentIcon() {
 
 export default function UploadStatusBar({ readyCount, totalCount, statusMessage, uploadState }) {
   const statusColor = {
-    ready: "#4caf82",
-    success: "#4caf82",
+    ready: "#D98A21",
+    success: "#D98A21",
     uploading: "#D98A21",
     error: "#e05555",
     warning: "#e0a835",
@@ -30,7 +30,8 @@ export default function UploadStatusBar({ readyCount, totalCount, statusMessage,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        background: "#12100E",
+        background: "rgba(0, 0, 0, 0.15)",
+        border: "1px solid #3A3630",
         borderRadius: "8px",
         padding: "0.75rem 1.25rem",
         fontSize: "0.85rem",
