@@ -272,8 +272,7 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
   };
 
   const handleProceed = () => {
-    // Module 3 (SynthesisDraftLayout) not yet wired — stay on current view
-    onStepChange(1); 
+    onStepChange(2); 
   };
 
   return (
