@@ -37,6 +37,7 @@ body {
   background: #1E1C19;
   color: var(--ink-700);
   overflow-x: hidden;
+  scrollbar-gutter: stable;
 }
 
 

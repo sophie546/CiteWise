@@ -34,10 +34,10 @@ export default function App() {
 
       <main style={{
         flex: 1,
-        padding: step === -1 ? 0 : "2rem",
-        maxWidth: step === -1 ? "100%" : 1280,
         width: "100%",
-        margin: "0 auto",
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
       }}>
 
         {step === -1 && (

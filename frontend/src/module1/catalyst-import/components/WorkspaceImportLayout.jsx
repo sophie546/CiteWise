@@ -174,7 +174,7 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
   const totalCount = fileQueue.length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+    <div style={{ maxWidth: 1280, width: "100%", margin: "0 auto", padding: "24px 32px", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
       {styleInject}
 
       {showSuccessToast && (

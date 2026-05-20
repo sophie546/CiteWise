@@ -221,16 +221,16 @@ export default function SynthesisDraftLayout({ sessionId, onStepChange }) {
       `}} />
 
       {/* Main Structural Flex/Grid Row Container */}
-      <main
+      <div
         style={{
+          maxWidth: 1280,
+          width: "100%",
+          margin: "0 auto",
+          padding: "24px 32px",
           flex: 1,
           display: "grid",
           gridTemplateColumns: "320px 1fr",
           gap: "24px",
-          padding: "24px 32px",
-          maxWidth: 1280,
-          margin: "0 auto",
-          width: "100%",
           minHeight: 0,
         }}
       >
@@ -813,7 +813,7 @@ export default function SynthesisDraftLayout({ sessionId, onStepChange }) {
             )}
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

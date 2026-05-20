@@ -7,19 +7,19 @@ function ApprovalToggle({ isApproved, onToggle }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        background: "#201d1a",
-        border: "1px solid #2e2e2e",
-        borderRadius: "8px",
-        padding: "14px 18px",
+        background: "rgba(0, 0, 0, 0.15)",
+        border: "1px solid #3A3630",
+        borderRadius: "12px",
+        padding: "16px 20px",
       }}
     >
       <span
         style={{
-          fontFamily: "'Geist Mono', monospace",
-          fontSize: "11px",
+          fontFamily: "'Poppins', sans-serif",
+          fontSize: "14px",
           fontWeight: "700",
-          color: "#8a8278",
-          letterSpacing: "1.5px",
+          color: "#D98A21",
+          letterSpacing: "0.5px",
           textTransform: "uppercase",
         }}
       >
@@ -30,27 +30,27 @@ function ApprovalToggle({ isApproved, onToggle }) {
       <div
         onClick={onToggle}
         style={{
-          width: "52px",
+          width: "54px",
           height: "28px",
           borderRadius: "14px",
-          background: isApproved ? "#e07b39" : "#333028",
+          background: "#12100e",
+          border: "1px solid #3A3630",
           position: "relative",
           cursor: "pointer",
-          transition: "background 0.25s ease",
           flexShrink: 0,
         }}
       >
         <div
           style={{
-            width: "22px",
-            height: "22px",
+            width: "20px",
+            height: "20px",
             borderRadius: "50%",
-            background: "#f0ece6",
+            background: isApproved ? "#D85A30" : "#3A3630",
             position: "absolute",
             top: "3px",
-            left: isApproved ? "27px" : "3px",
-            transition: "left 0.25s ease",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
+            left: isApproved ? "29px" : "3px",
+            transition: "left 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s",
+            boxShadow: isApproved ? "0 0 8px rgba(216, 90, 48, 0.4)" : "none",
           }}
         />
       </div>
@@ -74,13 +74,13 @@ export default function DocumentActiveCard({
   return (
     <div
       style={{
-        background: "#201d1a",
-        border: "1px solid #2e2e2e",
-        borderRadius: "12px",
+        background: "#1E1C19",
+        border: "1px solid #3A3630",
+        borderRadius: "16px",
         padding: "20px",
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
+        boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
       }}
     >
       {/* Header: doc count + pagination */}
@@ -89,47 +89,44 @@ export default function DocumentActiveCard({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          marginBottom: "14px",
         }}
       >
         <span
           style={{
-            fontFamily: "'Geist Mono', monospace",
-            fontSize: "12px",
+            fontFamily: "'Poppins', sans-serif",
+            fontSize: "15px",
             fontWeight: "700",
-            color: "#e07b39",
-            letterSpacing: "0.5px",
+            color: "#D98A21",
           }}
         >
           Document {currentIndex + 1} of {documents.length || 3}
         </span>
 
-        <div style={{ display: "flex", gap: "4px" }}>
+        <div style={{ display: "flex", gap: "14px" }}>
           {["‹", "›"].map((arrow, i) => (
             <button
               key={arrow}
               onClick={() => onNavigate && onNavigate(i === 0 ? currentIndex - 1 : currentIndex + 1)}
               style={{
                 background: "none",
-                border: "1px solid #3a3a3a",
-                borderRadius: "6px",
-                color: "#8a8278",
-                width: "28px",
-                height: "28px",
+                border: "none",
+                color: "#D85A30",
                 cursor: "pointer",
-                fontSize: "16px",
+                fontSize: "24px",
+                fontWeight: "700",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 lineHeight: 1,
-                transition: "border-color 0.2s, color 0.2s",
+                padding: "0 4px",
+                transition: "transform 0.15s, opacity 0.15s",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "#e07b39";
-                e.currentTarget.style.color = "#e07b39";
+                e.currentTarget.style.transform = "scale(1.2)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "#333028";
-                e.currentTarget.style.color = "#8a8278";
+                e.currentTarget.style.transform = "scale(1)";
               }}
             >
               {arrow}
@@ -138,37 +135,62 @@ export default function DocumentActiveCard({
         </div>
       </div>
 
-      {/* Document Info */}
+      {/* Separator line stretching fully to borders */}
+      <div
+        style={{
+          height: "1px",
+          background: "#3A3630",
+          margin: "0 -20px 20px -20px",
+        }}
+      />
+
+      {/* Document Info - Flat layout */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           gap: "14px",
-          background: "#252220",
-          borderRadius: "8px",
-          padding: "14px",
+          marginBottom: "20px",
+          padding: "0 4px",
         }}
       >
-        {/* PDF Icon */}
+        {/* PDF folding dog-ear icon */}
         <div
           style={{
-            width: "40px",
-            height: "48px",
-            background: "#e07b39",
-            borderRadius: "6px",
+            position: "relative",
+            width: "36px",
+            height: "46px",
+            background: "#D85A30",
+            borderRadius: "4px",
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
-            justifyContent: "center",
+            justifyContent: "flex-end",
+            paddingBottom: "6px",
             flexShrink: 0,
           }}
         >
+          {/* Dog-ear triangle overlay */}
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              width: 0,
+              height: 0,
+              borderStyle: "solid",
+              borderWidth: "0 10px 10px 0",
+              borderColor: "transparent transparent #1E1C19 #1E1C19",
+              borderTopRightRadius: "4px",
+            }}
+          />
           <span
             style={{
-              fontFamily: "'Geist Mono', monospace",
+              fontFamily: "'Poppins', sans-serif",
               fontSize: "9px",
-              fontWeight: "700",
+              fontWeight: "900",
               color: "#f0ece6",
-              letterSpacing: "0.5px",
+              letterSpacing: "0.2px",
             }}
           >
             PDF
@@ -179,22 +201,22 @@ export default function DocumentActiveCard({
           <div
             style={{
               fontFamily: "'Poppins', sans-serif",
-              fontSize: "14px",
-              fontWeight: "700",
+              fontSize: "15px",
+              fontWeight: "600",
               color: "#f0ece6",
-              marginBottom: "4px",
+              marginBottom: "3px",
             }}
           >
             {doc.name}
           </div>
           <div
             style={{
-              fontFamily: "'Geist Mono', monospace",
-              fontSize: "11px",
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "12px",
               color: "#8a8278",
             }}
           >
-            {doc.size} · {doc.pages} pages
+            {doc.size} - {doc.pages} pages
           </div>
         </div>
       </div>

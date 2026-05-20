@@ -134,7 +134,7 @@ const AIAssessmentPanel = ({
           fontFamily: "'Poppins', sans-serif",
           fontSize: '22px',
           fontWeight: '700',
-          color: '#e07b39',
+          color: '#D98A21',
           margin: 0,
         }}
       >
@@ -147,18 +147,18 @@ const AIAssessmentPanel = ({
           disabled={isAssessing}
           style={{
             background: 'transparent',
-            border: '1px solid #e07b39',
+            border: '1px solid #D85A30',
             borderRadius: '20px',
             padding: '6px 16px',
             fontFamily: "'Geist Mono', monospace",
             fontSize: '12px',
             fontWeight: 500,
-            color: '#e07b39',
+            color: '#D98A21',
             cursor: isAssessing ? 'not-allowed' : 'pointer',
             transition: 'all 0.2s ease',
           }}
           onMouseEnter={(e) => {
-            if (!isAssessing) e.currentTarget.style.background = 'rgba(224,123,57,0.06)';
+            if (!isAssessing) e.currentTarget.style.background = 'rgba(216,90,48,0.06)';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'transparent';
@@ -176,15 +176,16 @@ const AIAssessmentPanel = ({
     return (
       <div
         style={{
-          background: '#201d1a',
-          border: '1px solid #2e2e2e',
-          borderRadius: '12px',
+          background: '#1E1C19',
+          border: '1px solid #3A3630',
+          borderRadius: '16px',
           padding: '28px',
           display: 'flex',
           flexDirection: 'column',
           gap: '32px',
           flex: 1,
           minWidth: 0,
+          boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
         }}
       >
         <PanelHeader />
@@ -230,15 +231,16 @@ const AIAssessmentPanel = ({
     return (
       <div
         style={{
-          background: '#201d1a',
-          border: '1px solid #2e2e2e',
-          borderRadius: '12px',
+          background: '#1E1C19',
+          border: '1px solid #3A3630',
+          borderRadius: '16px',
           padding: '28px',
           display: 'flex',
           flexDirection: 'column',
           gap: '32px',
           flex: 1,
           minWidth: 0,
+          boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
         }}
       >
         <PanelHeader />
@@ -270,21 +272,22 @@ const AIAssessmentPanel = ({
     return (
       <div
         style={{
-          background: '#201d1a',
-          border: '1px solid #2e2e2e',
-          borderRadius: '12px',
+          background: '#1E1C19',
+          border: '1px solid #3A3630',
+          borderRadius: '16px',
           padding: '28px',
           display: 'flex',
           flexDirection: 'column',
           gap: '32px',
           flex: 1,
           minWidth: 0,
+          boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
         }}
       >
         <PanelHeader />
         <div
           style={{
-            background: '#201d1a',
+            background: 'rgba(0, 0, 0, 0.15)',
             border: '1px solid #5a2a2a',
             borderRadius: '8px',
             padding: '16px',
@@ -295,7 +298,7 @@ const AIAssessmentPanel = ({
             style={{
               fontFamily: "'Poppins', sans-serif",
               fontSize: '16px',
-              color: '#e07b39',
+              color: '#D98A21',
               margin: '0 0 8px 0',
             }}
           >
@@ -324,15 +327,16 @@ const AIAssessmentPanel = ({
     return (
       <div
         style={{
-          background: '#201d1a',
-          border: '1px solid #2e2e2e',
-          borderRadius: '12px',
+          background: '#1E1C19',
+          border: '1px solid #3A3630',
+          borderRadius: '16px',
           padding: '28px',
           display: 'flex',
           flexDirection: 'column',
           gap: '32px',
           flex: 1,
           minWidth: 0,
+          boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
         }}
       >
         <PanelHeader />
@@ -363,20 +367,21 @@ const AIAssessmentPanel = ({
   return (
     <div
       style={{
-        background: '#201d1a',
-        border: '1px solid #2e2e2e',
-        borderRadius: '12px',
+        background: '#1E1C19',
+        border: '1px solid #3A3630',
+        borderRadius: '16px',
         padding: '28px',
         display: 'flex',
         flexDirection: 'column',
         gap: '32px',
         flex: 1,
         minWidth: 0,
+        boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
       }}
     >
       <PanelHeader />
       <EvidenceExcerptList excerpts={mappedData.excerpts} />
-      <div style={{ borderTop: '1px solid #2a2a2a', margin: '-8px 0' }} />
+      <div style={{ borderTop: '1px solid #3A3630', margin: '-8px 0' }} />
       <SemanticScoreDashboard scores={mappedData.scores} />
     </div>
   );
