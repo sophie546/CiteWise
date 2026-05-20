@@ -2,15 +2,29 @@ import { useRef, useState } from "react";
 
 function CloudUploadIcon() {
   return (
-    <svg style={{ width: "48px", height: "48px", color: "#8a8278", marginBottom: "0.25rem" }} viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M34 32a10 10 0 0 0-2-19.8A14 14 0 1 0 10 26" />
-      <polyline points="24 20 24 36" />
-      <polyline points="18 26 24 20 30 26" />
+    <svg
+      width="56"
+      height="40"
+      viewBox="0 0 56 40"
+      fill="none"
+      style={{ marginBottom: "0.75rem", transition: "transform 0.3s ease" }}
+      className="cloud-icon"
+    >
+      {/* Cloud body */}
+      <path
+        d="M40 12.5C40 5.6 34.4 0 27.5 0C22.1 0 17.5 3.4 15.7 8.3C6.9 9.3 0 16.8 0 25.8C0 33.6 6.4 40 14.2 40H38.7C48.3 40 56 32.3 56 22.7C56 14.1 48.9 12.7 40 12.5Z"
+        fill="#8a8278"
+      />
+      {/* Upward pointing arrow inside the cloud */}
+      <path
+        d="M28 13L19 22H24V32H32V22H37L28 13Z"
+        fill="#f0ece6"
+      />
     </svg>
   );
 }
 
-export default function DragDropZone({ onFilesAdded, maxFileMB = 20 }) {
+export default function DragDropZone({ onFilesAdded }) {
   const fileInputRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -19,7 +33,10 @@ export default function DragDropZone({ onFilesAdded, maxFileMB = 20 }) {
     setIsDragging(false);
     onFilesAdded(e.dataTransfer.files);
   };
-  const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
   const handleDragLeave = () => setIsDragging(false);
   const handleBrowse = () => fileInputRef.current?.click();
   const handleFileSelect = (e) => onFilesAdded(e.target.files);
@@ -27,24 +44,38 @@ export default function DragDropZone({ onFilesAdded, maxFileMB = 20 }) {
   return (
     <div
       style={{
-        border: `1.5px dashed ${isDragging ? "#e07b39" : "#333028"}`,
-        borderRadius: "8px",
+        border: `1.5px dashed ${isDragging ? "#D98A21" : "#3A3630"}`,
+        borderRadius: "12px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: "0.5rem",
+        gap: "0.4rem",
         padding: "2rem 1rem",
         cursor: "pointer",
-        transition: "border-color 0.15s, background 0.15s",
-        minHeight: "180px",
+        transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+        minHeight: "200px",
         textAlign: "center",
-        background: isDragging ? "rgba(224, 123, 57, 0.06)" : "transparent",
+        background: isDragging ? "rgba(217, 138, 33, 0.04)" : "#12100E",
       }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       onClick={handleBrowse}
+      onMouseEnter={(e) => {
+        if (!isDragging) {
+          e.currentTarget.style.borderColor = "#D98A21";
+          const icon = e.currentTarget.querySelector(".cloud-icon");
+          if (icon) icon.style.transform = "translateY(-3px)";
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isDragging) {
+          e.currentTarget.style.borderColor = "#3A3630";
+          const icon = e.currentTarget.querySelector(".cloud-icon");
+          if (icon) icon.style.transform = "translateY(0)";
+        }
+      }}
     >
       <input
         ref={fileInputRef}
@@ -55,25 +86,56 @@ export default function DragDropZone({ onFilesAdded, maxFileMB = 20 }) {
         style={{ display: "none" }}
       />
       <CloudUploadIcon />
-      <p style={{ fontSize: "0.9rem", fontWeight: 500, color: "#f0ece6" }}>Drop PDF files here</p>
-      <small style={{ fontSize: "0.75rem", color: "#8a8278" }}>Multiple files supported</small>
+      <p
+        style={{
+          fontSize: "0.95rem",
+          fontWeight: 600,
+          color: "#f0ece6",
+          margin: 0,
+          fontFamily: "'Poppins', sans-serif",
+        }}
+      >
+        Drop PDF files here
+      </p>
+      <small
+        style={{
+          fontSize: "0.75rem",
+          color: "rgba(240, 236, 230, 0.4)",
+          margin: 0,
+          fontFamily: "'Poppins', sans-serif",
+        }}
+      >
+        Multiple files supported
+      </small>
       <button
         type="button"
         style={{
-          background: "transparent",
-          border: "1.5px solid #e07b39",
+          background: "#12100E",
+          border: "1.5px solid #D85A30",
           borderRadius: "8px",
           color: "#f0ece6",
-          fontSize: "0.875rem",
-          fontWeight: 600,
-          padding: "0.4rem 1.25rem",
+          fontSize: "0.85rem",
+          fontWeight: 700,
+          fontFamily: "'Poppins', sans-serif",
+          padding: "0.5rem 2rem",
           cursor: "pointer",
-          marginTop: "0.25rem",
-          transition: "background 0.15s",
+          marginTop: "0.75rem",
+          transition: "all 0.2s ease",
+          outline: "none",
+          boxShadow: "0 4px 12px rgba(216, 90, 48, 0.1)",
         }}
-        onClick={(e) => { e.stopPropagation(); handleBrowse(); }}
-        onMouseEnter={(e) => e.currentTarget.style.background = "rgba(224, 123, 57, 0.1)"}
-        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleBrowse();
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "#D85A30";
+          e.currentTarget.style.boxShadow = "0 6px 16px rgba(216, 90, 48, 0.3)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "#12100E";
+          e.currentTarget.style.boxShadow = "0 4px 12px rgba(216, 90, 48, 0.1)";
+        }}
       >
         Or Browse
       </button>

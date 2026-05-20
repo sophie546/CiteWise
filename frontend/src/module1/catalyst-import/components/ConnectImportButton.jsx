@@ -7,30 +7,64 @@ export default function ConnectImportButton({ onClick, isLoading }) {
         display: "flex",
         alignItems: "center",
         gap: "0.5rem",
-        background: "#e07b39",
+        background: "#D85A30",
         color: "#fff",
         border: "none",
         borderRadius: "8px",
         fontSize: "0.875rem",
-        fontWeight: "600",
-        padding: "0.5rem 1.125rem",
+        fontWeight: "700",
+        fontFamily: "'Poppins', sans-serif",
+        padding: "0.55rem 1.25rem",
         cursor: isLoading ? "not-allowed" : "pointer",
         whiteSpace: "nowrap",
-        transition: "background 0.15s",
+        transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
         opacity: isLoading ? 0.6 : 1,
+        boxShadow: "0 4px 12px rgba(216, 90, 48, 0.2)",
       }}
       onMouseEnter={(e) => {
-        if (!isLoading) e.currentTarget.style.background = "#c96d2e";
+        if (!isLoading) {
+          e.currentTarget.style.background = "#c24e27";
+          e.currentTarget.style.boxShadow = "0 6px 16px rgba(216, 90, 48, 0.35)";
+          e.currentTarget.style.transform = "translateY(-1px)";
+        }
       }}
       onMouseLeave={(e) => {
-        if (!isLoading) e.currentTarget.style.background = "#e07b39";
+        if (!isLoading) {
+          e.currentTarget.style.background = "#D85A30";
+          e.currentTarget.style.boxShadow = "0 4px 12px rgba(216, 90, 48, 0.2)";
+          e.currentTarget.style.transform = "translateY(0)";
+        }
+      }}
+      onMouseDown={(e) => {
+        if (!isLoading) {
+          e.currentTarget.style.transform = "translateY(1px)";
+        }
+      }}
+      onMouseUp={(e) => {
+        if (!isLoading) {
+          e.currentTarget.style.transform = "translateY(-1px)";
+        }
       }}
     >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: "14px", height: "14px" }}>
+      {/* Premium SVG Link Icon */}
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{
+          width: "14px",
+          height: "14px",
+          transform: isLoading ? "rotate(90deg)" : "none",
+          transition: "transform 0.4s ease",
+        }}
+      >
         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
         <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
       </svg>
-      {isLoading ? "Importing..." : "Connect & Import"}
+      {isLoading ? "Connecting..." : "Connect & Import"}
     </button>
   );
 }

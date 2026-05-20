@@ -41,7 +41,10 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
   // ── CATalyst Import ────────────────────────────────────────────
   const handleImport = async () => {
     const trimmed = workspaceId.trim();
-    if (!trimmed) { setError("Workspace ID is required."); return; }
+    if (!trimmed) {
+      setError("Workspace ID is required.");
+      return;
+    }
     setHasAttempted(true);
     setError("");
     setCatalystData(null);
@@ -78,13 +81,25 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
         const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
         let status = "queued";
         let message = "Ready for upload";
-        if (!isPdf) { status = "invalid"; message = "Unsupported file type"; }
-        else if (file.size > MAX_FILE_MB * 1024 * 1024) { status = "invalid"; message = `Exceeds ${MAX_FILE_MB}MB`; }
-        else if (seenKeys.has(key)) { status = "duplicate"; message = "Duplicate"; }
+        if (!isPdf) {
+          status = "invalid";
+          message = "Unsupported file type";
+        } else if (file.size > MAX_FILE_MB * 1024 * 1024) {
+          status = "invalid";
+          message = `Exceeds ${MAX_FILE_MB}MB`;
+        } else if (seenKeys.has(key)) {
+          status = "duplicate";
+          message = "Duplicate";
+        }
         if (!seenKeys.has(key)) seenKeys.add(key);
         next.push({
           id: `${key}-${Math.random().toString(16).slice(2)}`,
-          key, file, name: file.name, size: file.size, status, message,
+          key,
+          file,
+          name: file.name,
+          size: file.size,
+          status,
+          message,
         });
       });
       return next;
@@ -136,6 +151,12 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
           return { ...item, status: match.success ? "uploaded" : "failed", message: match.message };
         })
       );
+      // Proceed automatically if upload succeeded fully
+      if (failed === 0 && accepted > 0) {
+        setTimeout(() => {
+          onProceed?.();
+        }, 1500);
+      }
     } catch (err) {
       setUploadState("error");
       setStatusMessage(err.message);
@@ -152,10 +173,10 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+      {styleInject}
 
       {/* ── Card 1: CATalyst Data Import ─────────────────────────── */}
       <div style={card}>
-
         {/* Card header row: title left, input+button right */}
         <div style={cardHeader}>
           <span style={cardTitle}>CATalyst Data Import</span>
@@ -174,61 +195,80 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
           error={error}
           hasAttempted={hasAttempted}
         />
-
       </div>
 
       {/* ── Card 2: RRL Document Upload ──────────────────────────── */}
       <div style={card}>
-
-        <div style={{ padding: "1.125rem 1.5rem", borderBottom: "1px solid #333028" }}>
+        <div style={cardHeader}>
           <span style={cardTitle}>RRL Document Upload</span>
         </div>
 
         {/* Drop zone + file list side by side */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "1rem",
-          padding: "1.25rem 1.5rem",
-        }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "1.25rem",
+            padding: "1.25rem 1.5rem",
+          }}
+        >
           <DragDropZone onFilesAdded={appendFiles} maxFileMB={MAX_FILE_MB} />
 
           {/* Selected Files panel */}
-          <div style={{
-            background: "#252220",
-            border: "1px solid #333028",
-            borderRadius: "10px",
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-            minHeight: 200,
-          }}>
-            <div style={{
-              padding: "0.625rem 0.875rem",
-              borderBottom: "1px solid #333028",
+          <div
+            style={{
+              background: "#12100E",
+              border: "1px solid #3A3630",
+              borderRadius: "12px",
+              padding: "1.25rem",
               display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}>
+              flexDirection: "column",
+              gap: "1rem",
+              minHeight: 200,
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={selectedLabel}>Selected Files</span>
               {totalCount > 0 && (
-                <span style={{ fontSize: "0.7rem", color: "#8a8278" }}>
+                <span
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "rgba(240, 236, 230, 0.4)",
+                    fontFamily: "'Poppins', sans-serif",
+                    fontWeight: 500,
+                  }}
+                >
                   {totalCount} in queue
                 </span>
               )}
             </div>
-            <SelectedFilesList files={fileQueue} onRemove={removeFileItem} />
+            
+            {/* Light black inner list container */}
+            <div
+              style={{
+                background: "#1E1C19",
+                borderRadius: "8px",
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+              }}
+            >
+              <SelectedFilesList files={fileQueue} onRemove={removeFileItem} />
+            </div>
           </div>
         </div>
 
         {/* Upload button + status bar */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "1rem",
-          padding: "0 1.5rem 1.25rem",
-          alignItems: "center",
-        }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "1.25rem",
+            padding: "0 1.5rem 1.25rem",
+            alignItems: "center",
+          }}
+        >
           <UploadAllButton onClick={handleUpload} isUploading={uploadState === "uploading"} />
           <UploadStatusBar
             readyCount={readyCount}
@@ -237,18 +277,29 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
             uploadState={uploadState}
           />
         </div>
-
       </div>
     </div>
   );
 }
 
+// Style injection to handle page-wide premium animations
+const styleInject = (
+  <style dangerouslySetInnerHTML={{__html: `
+    @keyframes cardFadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  `}} />
+);
+
 // ── Shared style tokens ──────────────────────────────────────────
 const card = {
-  background: "#201d1a",
-  border: "1px solid #333028",
+  background: "#1E1C19",
+  border: "1px solid #3A3630",
   borderRadius: "12px",
   overflow: "hidden",
+  animation: "cardFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both",
+  boxShadow: "0 8px 30px rgba(0, 0, 0, 0.35)",
 };
 
 const cardHeader = {
@@ -256,24 +307,25 @@ const cardHeader = {
   alignItems: "center",
   justifyContent: "space-between",
   padding: "1.125rem 1.5rem",
-  borderBottom: "1px solid #333028",
+  borderBottom: "1px solid #3A3630",
   gap: "1rem",
+  background: "#12100E",
 };
 
 const cardTitle = {
   fontFamily: "'Poppins', sans-serif",
   fontWeight: 700,
   fontSize: "1.05rem",
-  fontWeight: "700",
-  color: "#e07b39",
+  color: "#D98A21",
   letterSpacing: "0.01em",
   flexShrink: 0,
 };
 
 const selectedLabel = {
-  fontSize: "0.7rem",
+  fontSize: "0.75rem",
   fontWeight: "700",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#e07b39",
+  color: "#D98A21",
+  fontFamily: "'Poppins', sans-serif",
 };
