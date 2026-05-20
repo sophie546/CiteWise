@@ -7,6 +7,7 @@ import com.citewise.backend.entity.UploadedDocument;
 import com.citewise.backend.repository.DocumentInsightRepository;
 import com.citewise.backend.repository.UploadedDocumentRepository;
 import com.citewise.backend.service.DocumentUploadService;
+import com.citewise.backend.service.N8nResponseValidator;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -36,9 +37,16 @@ public class DocumentAnalysisController {
     }
 
     @GetMapping("/{id}/insights")
+    @Transactional
     public ResponseEntity<DocumentInsight> getDocumentInsights(@PathVariable Long id) {
-        return documentInsightRepository.findByDocumentId(id)
-                .map(ResponseEntity::ok)
+        return documentInsightRepository.findByDocumentIdWithExcerpts(id)
+                .map(insight -> {
+                    if (N8nResponseValidator.isPlaceholderInsight(insight)) {
+                        documentInsightRepository.delete(insight);
+                        return ResponseEntity.notFound().<DocumentInsight>build();
+                    }
+                    return ResponseEntity.ok(insight);
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 

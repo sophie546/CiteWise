@@ -27,7 +27,6 @@ import com.citewise.backend.dto.CatalystPayload;
 import com.citewise.backend.dto.DocumentUploadResponse;
 import com.citewise.backend.dto.DocumentUploadResult;
 import com.citewise.backend.dto.NlpEvaluationRequest;
-import com.citewise.backend.dto.RawAIResponse;
 import com.citewise.backend.entity.DocumentInsight;
 import com.citewise.backend.entity.UploadedDocument;
 import com.citewise.backend.repository.DocumentInsightRepository;
@@ -150,17 +149,33 @@ public class DocumentUploadService {
                     payload != null && payload.gaps() != null ? String.join("; ", payload.gaps()) : ""
                 );
 
-                logger.info("Calling NLP Service for document ID: {}", document.getId());
-                RawAIResponse response = nlpMicroserviceClient.evaluateDocument(request);
+                logger.info("Calling n8n for document ID: {}", document.getId());
+                String rawResponse = nlpMicroserviceClient.evaluateDocumentRaw(request);
 
-                if (response != null) {
-                    DocumentInsight insight = rubricScoringEngine.mapToEntity(response, document.getId());
+                if (rawResponse != null) {
+                    DocumentInsight insight = rubricScoringEngine.parseAIResponse(rawResponse, document.getId());
                     if (insight != null) {
+                        documentInsightRepository.findByDocumentId(document.getId())
+                            .ifPresent(documentInsightRepository::delete);
                         documentInsightRepository.save(insight);
-                        logger.info("AI scoring saved for document {}", document.getId());
+                        int excerptCount = insight.getEvidenceExcerpts() != null
+                            ? insight.getEvidenceExcerpts().size() : 0;
+                        logger.info(
+                            "Saved n8n insights for document {} — gap={}, methodology={}, theoretical={}, citation={}, excerpts={}",
+                            document.getId(),
+                            insight.getGapAlignmentScore(),
+                            insight.getMethodologyScore(),
+                            insight.getTheoreticalScore(),
+                            insight.getCitationScore(),
+                            excerptCount
+                        );
                     }
                 } else {
-                    logger.warn("AI response was null for document {}", document.getId());
+                    logger.warn(
+                        "No insights saved for document {} — n8n response was empty, placeholder, or Code node returned {{}}. "
+                        + "In Code node use: const raw = item.output ?? item.text; and Respond: ={{ JSON.stringify($json) }}",
+                        document.getId()
+                    );
                 }
             } catch (Exception e) {
                 logger.error("AI scoring pipeline failed for document {}: {}", document.getId(), e.getMessage(), e);

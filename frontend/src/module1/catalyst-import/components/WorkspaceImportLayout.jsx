@@ -8,6 +8,7 @@ import UploadStatusBar from "../../rrl-upload/components/UploadStatusBar";
 
 const MAX_FILE_MB = 20;
 const STORAGE_SESSION_KEY = "citewise.sessionId";
+const STORAGE_CATALYST_KEY = "citewise.catalystData";
 
 function buildFileKey(file) {
   return `${file.name.toLowerCase()}-${file.size}-${file.lastModified}`;
@@ -16,7 +17,15 @@ function buildFileKey(file) {
 export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
   // ── CATalyst Import State ──────────────────────────────────────
   const [workspaceId, setWorkspaceId] = useState("");
-  const [catalystData, setCatalystData] = useState(null);
+  const [catalystData, setCatalystData] = useState(() => {
+    const stored = localStorage.getItem(STORAGE_CATALYST_KEY);
+    if (!stored) return null;
+    try {
+      return JSON.parse(stored);
+    } catch (err) {
+      return null;
+    }
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [hasAttempted, setHasAttempted] = useState(false);
@@ -44,6 +53,7 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
         throw new Error(payload?.message || "Unable to load CATalyst data.");
       }
       setCatalystData(payload.data);
+      localStorage.setItem(STORAGE_CATALYST_KEY, JSON.stringify(payload.data));
       const sid = payload.sessionId || trimmed;
       localStorage.setItem(STORAGE_SESSION_KEY, sid);
       setSessionId(sid);

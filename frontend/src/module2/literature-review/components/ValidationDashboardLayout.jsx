@@ -1,78 +1,196 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import DocumentActiveCard from "./DocumentActiveCard";
 import QuickNavigationList from "./QuickNavigationList";
 import AIAssessmentPanel from "../../ai-assessment/components/AIAssessmentPanel";
 import ValidationSummaryFooter from "./ValidationSummaryFooter";
 
 export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
-  // Primary list state populated initially from your Module 1 file uploads
-  const [documents, setDocuments] = useState([
-    { id: "uuid-1", name: "Document_001.pdf", size: "2.4 MB", pages: 15, status: "Ready", approved: true },
-    { id: "uuid-2", name: "Document_002.pdf", size: "1.8 MB", pages: 22, status: "Uploading", approved: false },
-    { id: "uuid-3", name: "Document_003.pdf", size: "3.1 MB", pages: 30, status: "Ready", approved: false },
-  ]);
+  const STORAGE_SESSION_KEY = "citewise.sessionId";
+
+  const [resolvedSessionId, setResolvedSessionId] = useState(
+    () => sessionId || localStorage.getItem(STORAGE_SESSION_KEY) || ""
+  );
+
+  // Primary list state populated from backend session documents
+  const [documents, setDocuments] = useState([]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [activeInsights, setActiveInsights] = useState(null);
   const [isInsightsLoading, setIsInsightsLoading] = useState(false);
+  const [insightsPollExhausted, setInsightsPollExhausted] = useState(false);
+  const [assessVersion, setAssessVersion] = useState(0);
+  const pollAttemptsRef = useRef(0);
+  const MAX_INSIGHTS_POLL_ATTEMPTS = 50;
 
   // Server-driven aggregate metrics tracking DocumentValidationService properties
   const [batchStats, setBatchStats] = useState({
-    approvedCount: 1,
-    totalCount: 3,
-    averageScore: 85.75,
+    approvedCount: 0,
+    totalCount: 0,
+    averageScore: 0,
   });
 
   const activeDoc = documents[currentIndex];
 
-  // ── ARCHITECTURE STEP: Async REST Polling for AI Insights ──
-  // Per Sequence Diagram 2.1 & 2.2, we fetch insights once status is 'Ready'
   useEffect(() => {
-    if (!activeDoc || !sessionId) return;
+    if (sessionId) {
+      localStorage.setItem(STORAGE_SESSION_KEY, sessionId);
+      setResolvedSessionId(sessionId);
+    }
+  }, [sessionId]);
 
-    // If document analysis is still processing on backend, poll until 'Ready'
-    let pollingInterval = null;
-    
+  const formatBytes = (bytes) => {
+    if (bytes === null || bytes === undefined) return "-";
+    if (bytes < 1024) return `${bytes} B`;
+    const kb = bytes / 1024;
+    if (kb < 1024) return `${kb.toFixed(1)} KB`;
+    const mb = kb / 1024;
+    return `${mb.toFixed(1)} MB`;
+  };
+
+  const mapStatus = (status) => (status === "complete" ? "Ready" : "Processing");
+
+  const mapDocuments = (items, previous) => {
+    const previousById = new Map((previous || []).map((doc) => [doc.id, doc]));
+    return items.map((item) => {
+      const prev = previousById.get(item.id);
+      return {
+        id: item.id,
+        name: item.fileName || "Untitled.pdf",
+        size: formatBytes(item.sizeBytes),
+        pages: prev?.pages ?? "-",
+        status: mapStatus(item.status),
+        approved: prev?.approved ?? false,
+        relevancyScore: item.relevancyScore ?? null,
+      };
+    });
+  };
+
+  const fetchDocuments = useCallback(async () => {
+    if (!resolvedSessionId) return;
+    try {
+      const response = await fetch(`/api/v1/documents/session/${resolvedSessionId}`);
+      if (!response.ok) return;
+      const data = await response.json();
+      setDocuments((prev) => mapDocuments(Array.isArray(data) ? data : [], prev));
+    } catch (err) {
+      console.warn("Error loading session documents:", err);
+    }
+  }, [resolvedSessionId]);
+
+  useEffect(() => {
+    if (!resolvedSessionId) return;
+    fetchDocuments();
+    const pollId = setInterval(fetchDocuments, 5000);
+    return () => clearInterval(pollId);
+  }, [resolvedSessionId, fetchDocuments]);
+
+  useEffect(() => {
+    if (currentIndex >= documents.length) {
+      setCurrentIndex(0);
+    }
+  }, [documents.length, currentIndex]);
+
+  // Fetch n8n-backed insights for the selected document; poll until ready (max ~2.5 min)
+  useEffect(() => {
+    if (!activeDoc?.id) {
+      setActiveInsights(null);
+      setIsInsightsLoading(false);
+      setInsightsPollExhausted(false);
+      return;
+    }
+
+    let cancelled = false;
+    let pollTimeout = null;
+    pollAttemptsRef.current = 0;
+    setInsightsPollExhausted(false);
+
     const fetchInsightsData = async () => {
+      if (cancelled) return;
       setIsInsightsLoading(true);
       try {
         const response = await fetch(`/api/v1/documents/${activeDoc.id}/insights`, {
-          headers: { "Session-Id": sessionId },
+          cache: "no-store",
         });
+        if (cancelled) return;
+
         if (response.ok) {
-          const data = await response.json(); // Map array payloads to structure
+          const data = await response.json();
           setActiveInsights(data);
-          clearInterval(pollingInterval);
+          setIsInsightsLoading(false);
+          setInsightsPollExhausted(false);
+          return;
         }
-      } catch (err) {
-        console.error("Error fetching AI Insights:", err);
-      } finally {
+
+        if (response.status === 404) {
+          setActiveInsights(null);
+          pollAttemptsRef.current += 1;
+          if (pollAttemptsRef.current >= MAX_INSIGHTS_POLL_ATTEMPTS) {
+            setIsInsightsLoading(false);
+            setInsightsPollExhausted(true);
+            return;
+          }
+          setIsInsightsLoading(false);
+          pollTimeout = setTimeout(fetchInsightsData, 3000);
+          return;
+        }
+
+        setActiveInsights(null);
         setIsInsightsLoading(false);
+        setInsightsPollExhausted(true);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Error fetching AI Insights:", err);
+          setActiveInsights(null);
+          setIsInsightsLoading(false);
+          setInsightsPollExhausted(true);
+        }
       }
     };
 
-    if (activeDoc.status === "Ready") {
-      fetchInsightsData();
-    } else {
-      setActiveInsights(null); // Clear previous cache while processing
-      // Poll every 3 seconds to track background text extraction status updates
-      pollingInterval = setInterval(async () => {
-        // Checking current background task state via a quick status ping
-        const res = await fetch(`/api/v1/documents/${activeDoc.id}/status`, {
-          headers: { "Session-Id": sessionId }
-        });
-        if (res.ok) {
-          const statusData = await res.json();
-          if (statusData.status === "Ready") {
-            setDocuments(prev => prev.map(d => d.id === activeDoc.id ? { ...d, status: "Ready" } : d));
-            fetchInsightsData();
-          }
-        }
-      }, 3000);
-    }
+    fetchInsightsData();
 
-    return () => clearInterval(pollingInterval);
-  }, [currentIndex, activeDoc?.id, activeDoc?.status, sessionId]);
+    return () => {
+      cancelled = true;
+      if (pollTimeout) clearTimeout(pollTimeout);
+    };
+  }, [activeDoc?.id, assessVersion]);
+
+  const handleAssessDocument = useCallback(async () => {
+    if (!activeDoc?.id) return;
+    setActiveInsights(null);
+    setIsInsightsLoading(true);
+    setInsightsPollExhausted(false);
+    pollAttemptsRef.current = 0;
+    try {
+      const response = await fetch(`/api/v1/documents/${activeDoc.id}/assess`, {
+        method: "POST",
+      });
+      if (!response.ok) {
+        console.warn("Failed to start assessment");
+        setIsInsightsLoading(false);
+        setInsightsPollExhausted(true);
+      } else {
+        setAssessVersion((v) => v + 1);
+      }
+    } catch (err) {
+      console.warn("Failed to start assessment:", err);
+      setIsInsightsLoading(false);
+      setInsightsPollExhausted(true);
+    }
+  }, [activeDoc?.id]);
+
+  useEffect(() => {
+    const approved = documents.filter((doc) => doc.approved).length;
+    const scored = documents.filter((doc) => typeof doc.relevancyScore === "number");
+    const averageScore = scored.length
+      ? scored.reduce((sum, doc) => sum + doc.relevancyScore, 0) / scored.length
+      : 0;
+    setBatchStats({
+      approvedCount: approved,
+      totalCount: documents.length,
+      averageScore,
+    });
+  }, [documents]);
 
 
   // ── ARCHITECTURE STEP: Human-in-the-Loop PATCH Toggle ──
@@ -122,9 +240,35 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
     }
   };
 
+  const handleDeleteDocument = async (index) => {
+    const docToDelete = documents[index];
+    if (!docToDelete?.id) return;
+
+    const updatedDocs = documents.filter((_, i) => i !== index);
+    setDocuments(updatedDocs);
+
+    if (index < currentIndex) {
+      setCurrentIndex(currentIndex - 1);
+    } else if (index === currentIndex) {
+      setCurrentIndex(Math.min(currentIndex, Math.max(0, updatedDocs.length - 1)));
+    }
+
+    try {
+      const response = await fetch(`/api/v1/documents/${docToDelete.id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok && response.status !== 404) {
+        await fetchDocuments();
+      }
+    } catch (err) {
+      console.warn("Failed to delete document:", err);
+      await fetchDocuments();
+    }
+  };
+
   const handleUploadNew = () => {
     // Module 1 (WorkspaceImportLayout) not yet wired — stay on current view
-    onStepChange(1);
+    onStepChange(1); 
   };
 
   const handleProceed = () => {
@@ -167,14 +311,18 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
             documents={documents}
             currentIndex={currentIndex}
             onSelect={setCurrentIndex}
+            onDelete={handleDeleteDocument}
           />
         </div>
 
         {/* Right Isolated Semantic Metric Viewport */}
         <AIAssessmentPanel
+          documentId={activeDoc?.id}
           insights={activeInsights}
           isLoading={isInsightsLoading}
-          onUploadNew={handleUploadNew}
+          assessmentTimedOut={insightsPollExhausted}
+          onAssess={handleAssessDocument}
+          onUploadClick={handleUploadNew}
         />
       </main>
 

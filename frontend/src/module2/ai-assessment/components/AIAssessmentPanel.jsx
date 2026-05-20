@@ -3,16 +3,28 @@ import EvidenceExcerptList from './EvidenceExcerptList';
 import SemanticScoreDashboard from './SemanticScoreDashboard';
 import UploadNewPDFButton from './UploadNewPDFButton';
 
-const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
+const AIAssessmentPanel = ({
+  documentId,
+  insights: externalInsights,
+  isLoading: externalLoading,
+  onAssess: externalAssess,
+  assessmentTimedOut = false,
+  onUploadClick,
+  onUploadNew,
+}) => {
   const [insights, setInsights] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isAssessing, setIsAssessing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const useExternal = externalInsights !== undefined || externalLoading !== undefined;
+  const resolvedInsights = useExternal ? externalInsights : insights;
+  const resolvedLoading = useExternal ? Boolean(externalLoading) : loading;
+  const resolvedError = useExternal ? null : error;
 
   // Polling / fetch logic (identical to first file)
   useEffect(() => {
-    if (!documentId) return;
+    if (!documentId || useExternal) return;
 
     let pollTimeout = null;
     let isMounted = true;
@@ -56,7 +68,7 @@ const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
       isMounted = false;
       if (pollTimeout) clearTimeout(pollTimeout);
     };
-  }, [documentId, refreshKey]);
+  }, [documentId, refreshKey, useExternal]);
 
   const handleAssess = async () => {
     if (!documentId || isAssessing) return;
@@ -65,6 +77,11 @@ const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
     setError(null);
 
     try {
+      if (externalAssess) {
+        await externalAssess();
+        return;
+      }
+
       const response = await fetch(`/api/v1/documents/${documentId}/assess`, {
         method: 'POST',
       });
@@ -85,18 +102,16 @@ const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
 
   // Helper to map API data to the format expected by the new child components
   const getMappedData = () => {
-    if (!insights) return null;
+    if (!resolvedInsights) return null;
     return {
-      excerpts: (insights.evidenceExcerpts || []).map((excerpt) => ({
-        quote: excerpt.quote || '',
-        page: excerpt.page || 0,
-        relevance: excerpt.relevance || 'Medium',
-      })),
+      excerpts: Array.isArray(resolvedInsights.evidenceExcerpts)
+        ? resolvedInsights.evidenceExcerpts
+        : [],
       scores: {
-        researchGapAlignment: insights.gapAlignmentScore || 0,
-        methodologicalRelevance: insights.methodologyScore || 0,
-        theoreticalContribution: insights.theoreticalScore || 0,
-        citationQuality: insights.citationScore || 0,
+        gapAlignment: resolvedInsights.gapAlignmentScore ?? 0,
+        methodology: resolvedInsights.methodologyScore ?? 0,
+        theoretical: resolvedInsights.theoreticalScore ?? 0,
+        citation: resolvedInsights.citationScore ?? 0,
       },
     };
   };
@@ -151,13 +166,13 @@ const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
         >
           {isAssessing ? 'Assessing...' : 'Assess PDF'}
         </button>
-        <UploadNewPDFButton onClick={onUploadClick} />
+        <UploadNewPDFButton onClick={onUploadClick || onUploadNew} />
       </div>
     </div>
   );
 
   // --- Empty state (no document selected) ---
-  if (!documentId) {
+  if (!documentId && !useExternal) {
     return (
       <div
         style={{
@@ -211,7 +226,7 @@ const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
   }
 
   // --- Loading state (initial fetch or refetch after assess) ---
-  if (loading || isAssessing) {
+  if (resolvedLoading || isAssessing) {
     return (
       <div
         style={{
@@ -251,7 +266,7 @@ const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
   }
 
   // --- Error state ---
-  if (error) {
+  if (resolvedError) {
     return (
       <div
         style={{
@@ -294,15 +309,18 @@ const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
               margin: 0,
             }}
           >
-            {error}
+            {resolvedError}
           </p>
         </div>
       </div>
     );
   }
 
-  // --- No insights available (e.g., still processing) ---
-  if (!insights || !mappedData) {
+  // --- No insights available (e.g., still processing or assessment failed) ---
+  if (!resolvedInsights || !mappedData) {
+    const waitingMessage = assessmentTimedOut
+      ? 'Assessment did not return results. Check backend logs and your n8n Code node (it may be returning empty {}). Click Assess PDF to try again.'
+      : 'No insights available yet. The document may still be processing.';
     return (
       <div
         style={{
@@ -334,7 +352,7 @@ const AIAssessmentPanel = ({ documentId, onUploadClick }) => {
               color: '#8a8278',
             }}
           >
-            No insights available yet. The document may still be processing.
+            {waitingMessage}
           </p>
         </div>
       </div>

@@ -2,6 +2,7 @@ export default function QuickNavigationList({
   documents = [],
   currentIndex = 0,
   onSelect,
+  onDelete,
 }) {
   return (
     <div
@@ -55,21 +56,18 @@ export default function QuickNavigationList({
         {documents.map((doc, index) => {
           const isActive = index === currentIndex;
           return (
-            <button
-              key={doc.name || index}
-              onClick={() => onSelect && onSelect(index)}
+            <div
+              key={doc.id || doc.name || index}
               style={{
                 background: isActive ? "#252220" : "transparent",
                 border: `1px solid ${isActive ? "#333028" : "#2a2724"}`,
                 borderRadius: "8px",
-                padding: "12px 14px",
+                padding: "8px 10px 8px 14px",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "space-between",
-                cursor: "pointer",
+                gap: "8px",
                 transition: "all 0.2s ease",
                 width: "100%",
-                textAlign: "left",
               }}
               onMouseEnter={(e) => {
                 if (!isActive) {
@@ -84,16 +82,65 @@ export default function QuickNavigationList({
                 }
               }}
             >
-              <span
+              <button
+                type="button"
+                onClick={() => onSelect && onSelect(index)}
                 style={{
-                  fontFamily: "'Geist Mono', monospace",
-                  fontSize: "12px",
-                  color: isActive ? "#f0ece6" : "#8a8278",
-                  fontWeight: isActive ? "600" : "400",
+                  flex: 1,
+                  minWidth: 0,
+                  background: "none",
+                  border: "none",
+                  padding: "4px 0",
+                  cursor: "pointer",
+                  textAlign: "left",
                 }}
               >
-                {doc.name}
-              </span>
+                <span
+                  style={{
+                    fontFamily: "'Geist Mono', monospace",
+                    fontSize: "12px",
+                    color: isActive ? "#f0ece6" : "#8a8278",
+                    fontWeight: isActive ? "600" : "400",
+                    display: "block",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {doc.name}
+                </span>
+              </button>
+
+              {onDelete && (
+                <button
+                  type="button"
+                  aria-label={`Delete ${doc.name}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(index);
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#8a8278",
+                    fontSize: "14px",
+                    lineHeight: 1,
+                    cursor: "pointer",
+                    padding: "4px 6px",
+                    borderRadius: "4px",
+                    flexShrink: 0,
+                    transition: "color 0.15s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "#e05555";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "#8a8278";
+                  }}
+                >
+                  ✕
+                </button>
+              )}
 
               {/* Status indicator */}
               <div
@@ -126,7 +173,7 @@ export default function QuickNavigationList({
                   </svg>
                 )}
               </div>
-            </button>
+            </div>
           );
         })}
       </div>

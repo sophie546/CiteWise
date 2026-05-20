@@ -13,6 +13,19 @@ function buildFileKey(file) {
 
 export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComplete }) {
   const [sessionId, setSessionId] = useState(() => propSessionId || localStorage.getItem(STORAGE_SESSION_KEY) || "");
+  const STORAGE_UPLOADS_KEY = "citewise.uploadedDocs";
+
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_UPLOADS_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setFileQueue(parsed);
+      } catch (err) {
+        // ignore
+      }
+    }
+  }, []);
   const [fileQueue, setFileQueue] = useState([]);
   const [uploadState, setUploadState] = useState("ready");
   const [statusMessage, setStatusMessage] = useState("Ready to upload");
@@ -112,6 +125,14 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
       );
       if (onUploadComplete && failed === 0 && accepted > 0) {
         onUploadComplete();
+      }
+      // persist uploaded items for UI continuity
+      try {
+        const uploaded = results.filter((r) => r.success).map((r) => ({ name: r.fileName, status: 'uploaded', message: r.message }));
+        const stored = JSON.parse(localStorage.getItem(STORAGE_UPLOADS_KEY) || '[]');
+        localStorage.setItem(STORAGE_UPLOADS_KEY, JSON.stringify([...stored, ...uploaded]));
+      } catch (err) {
+        // ignore storage errors
       }
     } catch (err) {
       setUploadState("error");
