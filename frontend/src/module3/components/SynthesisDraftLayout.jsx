@@ -12,8 +12,7 @@ export default function SynthesisDraftLayout({ sessionId, onStepChange }) {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [statusText, setStatusText] = useState("Ready to Generate");
   const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const [toastType, setToastType] = useState("success"); // 'success' | 'info'
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
 
   const dropdownRef = useRef(null);
 
@@ -94,24 +93,23 @@ export default function SynthesisDraftLayout({ sessionId, onStepChange }) {
         currentStepIdx++;
       } else {
         clearInterval(interval);
-        setGenerationStatus("complete");
-        showToast("Introduction drafted successfully!");
+        handleGenerationComplete();
       }
     }, 1200);
   };
 
-  // Helper for displaying toast notifications
-  const showToast = (message, type = "success") => {
-    setToastMessage(message);
-    setToastType(type);
+  // Helper for displaying success toast and triggering generation completion
+  const handleGenerationComplete = () => {
+    setGenerationStatus("complete");
+    setShowSuccessToast(true);
+    // Auto-hide toast after progress bar completes (2.2s)
     setTimeout(() => {
-      setToastMessage("");
-    }, 3500);
+      setShowSuccessToast(false);
+    }, 2200);
   };
 
   const handleExport = (format) => {
     setExportDropdownOpen(false);
-    showToast(`Exported successfully as ${format}!`, "success");
     
     // Trigger mock file download
     const element = document.createElement("a");
@@ -126,7 +124,6 @@ export default function SynthesisDraftLayout({ sessionId, onStepChange }) {
   const copyToClipboard = () => {
     setExportDropdownOpen(false);
     navigator.clipboard.writeText(generatedIntroductionText);
-    showToast("Copied to clipboard!", "success");
   };
 
   const resetGeneration = () => {
@@ -149,74 +146,111 @@ export default function SynthesisDraftLayout({ sessionId, onStepChange }) {
       }}
     >
       {/* Toast Notification */}
-      {toastMessage && (
-        <div
-          style={{
-            position: "fixed",
-            top: "80px",
-            right: "32px",
-            background: toastType === "success" ? "#e07b39" : "#2a2724",
-            border: "1px solid #333028",
-            color: "#f0ece6",
-            padding: "12px 24px",
-            borderRadius: "8px",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
-            zIndex: 1000,
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            animation: "slideIn 0.3s ease",
-            fontSize: "0.875rem",
-            fontWeight: 600,
-          }}
-        >
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path
-              d="M9 15A6 6 0 1 0 9 3a6 6 0 0 0 0 12Z"
-              stroke="#f0ece6"
-              strokeWidth="1.5"
-            />
-            <path
-              d="M7.5 9.5L8.5 10.5L10.5 7.5"
-              stroke="#f0ece6"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          {toastMessage}
+      {showSuccessToast && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(14, 12, 10, 0.75)",
+          backdropFilter: "blur(12px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 9999,
+          animation: "fadeInToast 0.3s ease-out forwards",
+        }}>
+          <div style={{
+            background: "#1E1C19",
+            border: "1px solid rgba(217, 138, 33, 0.25)",
+            borderRadius: "24px",
+            padding: "2.5rem 3rem",
+            maxWidth: "480px",
+            width: "90%",
+            textAlign: "center",
+            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(216, 90, 48, 0.15)",
+            animation: "scaleInToast 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
+          }}>
+            <div style={{
+              width: "80px",
+              height: "80px",
+              borderRadius: "50%",
+              background: "rgba(216, 90, 48, 0.1)",
+              border: "2px solid #D85A30",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 1.5rem",
+              boxShadow: "0 0 20px rgba(216, 90, 48, 0.2)",
+              animation: "pulseRing 2s infinite",
+            }}>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#D98A21" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" style={{
+                  strokeDasharray: 50,
+                  strokeDashoffset: 50,
+                  animation: "drawCheckmark 0.6s ease-out 0.2s forwards",
+                }} />
+              </svg>
+            </div>
+            <h3 style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: 800,
+              fontSize: "1.5rem",
+              color: "#f0ece6",
+              margin: "0 0 0.5rem 0",
+              letterSpacing: "0.01em",
+            }}>
+              Synthesis Complete
+            </h3>
+            <p style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "0.95rem",
+              color: "rgba(240, 236, 230, 0.7)",
+              lineHeight: "1.6",
+              margin: "0 0 1.75rem 0",
+            }}>
+              Your literature synthesis introduction has been generated with APA citations.
+            </p>
+            <div style={{
+              width: "100%",
+              height: "4px",
+              background: "rgba(255, 255, 255, 0.08)",
+              borderRadius: "2px",
+              overflow: "hidden",
+            }}>
+              <div style={{
+                height: "100%",
+                background: "linear-gradient(90deg, #D98A21, #D85A30)",
+                width: "0%",
+                borderRadius: "2px",
+                animation: "fillProgress 2.2s linear forwards",
+              }} />
+            </div>
+          </div>
         </div>
       )}
 
       {/* Style Animations (Injected dynamically) */}
       <style dangerouslySetInnerHTML={{__html: `
-        @keyframes slideIn {
-          from { transform: translateY(-20px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
+        @keyframes fadeInToast {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes scaleInToast {
+          from { transform: scale(0.8); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+        @keyframes pulseRing {
+          0%, 100% { box-shadow: 0 0 20px rgba(216, 90, 48, 0.2); }
+          50% { box-shadow: 0 0 40px rgba(216, 90, 48, 0.4); }
+        }
+        @keyframes drawCheckmark {
+          to { stroke-dashoffset: 0; }
+        }
+        @keyframes fillProgress {
+          to { width: 100%; }
         }
         @keyframes pulse {
           0%, 100% { opacity: 0.6; }
           50% { opacity: 1; }
-        }
-        .progress-bar-shine {
-          position: absolute;
-          top: 0; left: 0; bottom: 0; right: 0;
-          background-image: linear-gradient(
-            -45deg,
-            rgba(255, 255, 255, .15) 25%,
-            transparent 25%,
-            transparent 50%,
-            rgba(255, 255, 255, .15) 50%,
-            rgba(255, 255, 255, .15) 75%,
-            transparent 75%,
-            transparent
-          );
-          background-size: 40px 40px;
-          animation: progress-bar-stripes 2s linear infinite;
-        }
-        @keyframes progress-bar-stripes {
-          from { background-position: 40px 0; }
-          to { background-position: 0 0; }
         }
       `}} />
 
@@ -240,34 +274,43 @@ export default function SynthesisDraftLayout({ sessionId, onStepChange }) {
           {/* Card 1: Synthesis Control */}
           <div
             style={{
-              background: "#201d1a",
-              border: "1px solid #333028",
-              borderRadius: "12px",
-              padding: "20px",
+              background: "#1E1C19",
+              border: "1px solid #3A3630",
+              borderRadius: "16px",
+              overflow: "hidden",
               display: "flex",
               flexDirection: "column",
-              gap: "16px",
             }}
           >
-            <span
+            {/* Header */}
+            <div
               style={{
-                fontFamily: "'Poppins', sans-serif",
-                fontWeight: 700,
-                fontSize: "1.05rem",
-                color: "#e07b39",
-                letterSpacing: "0.01em",
+                background: "rgba(0, 0, 0, 0.15)",
+                borderBottom: "1px solid #3A3630",
+                padding: "16px 20px",
               }}
             >
-              Synthesis Control
-            </span>
+              <span
+                style={{
+                  fontFamily: "'Poppins', sans-serif",
+                  fontWeight: 700,
+                  fontSize: "1.05rem",
+                  color: "#D98A21",
+                  letterSpacing: "0.01em",
+                }}
+              >
+                Synthesis Control
+              </span>
+            </div>
 
-            <div style={{ height: "1px", background: "#333028" }} />
+            {/* Body */}
+            <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: "16px" }}>
 
             {/* Generation Status Box */}
             <div
               style={{
-                background: "#252220",
-                border: "1px solid #333028",
+                background: "#33302b",
+                border: "1px solid #3A3630",
                 borderRadius: "10px",
                 padding: "14px 16px",
                 display: "flex",
@@ -291,7 +334,7 @@ export default function SynthesisDraftLayout({ sessionId, onStepChange }) {
               <span
                 style={{
                   fontSize: "0.85rem",
-                  color: generationStatus === "complete" ? "#e07b39" : "#f0ece6",
+                  color: generationStatus === "complete" ? "#f0ece6" : "#f0ece6",
                   fontWeight: "600",
                   display: "flex",
                   alignItems: "center",
@@ -348,7 +391,7 @@ export default function SynthesisDraftLayout({ sessionId, onStepChange }) {
                 onClick={startGeneration}
                 disabled={generationStatus === "generating"}
                 style={{
-                  background: generationStatus === "generating" ? "#2a2724" : "#e07b39",
+                  background: generationStatus === "generating" ? "rgba(0, 0, 0, 0.15)" : "#D85A30",
                   color: generationStatus === "generating" ? "#8a8278" : "#f0ece6",
                   border: "none",
                   borderRadius: "10px",
@@ -362,10 +405,10 @@ export default function SynthesisDraftLayout({ sessionId, onStepChange }) {
                   width: "100%",
                 }}
                 onMouseEnter={(e) => {
-                  if (generationStatus !== "generating") e.currentTarget.style.background = "#c96d2e";
+                  if (generationStatus !== "generating") e.currentTarget.style.background = "#e96439";
                 }}
                 onMouseLeave={(e) => {
-                  if (generationStatus !== "generating") e.currentTarget.style.background = "#e07b39";
+                  if (generationStatus !== "generating") e.currentTarget.style.background = "#D85A30";
                 }}
                 onMouseDown={(e) => {
                   if (generationStatus !== "generating") e.currentTarget.style.transform = "scale(0.98)";
@@ -380,39 +423,44 @@ export default function SynthesisDraftLayout({ sessionId, onStepChange }) {
               <button
                 onClick={resetGeneration}
                 style={{
-                  background: "transparent",
-                  color: "#e07b39",
-                  border: "1px solid #e07b39",
+                  background: "#D85A30",
+                  color: "#f0ece6",
+                  border: "none",
                   borderRadius: "10px",
                   padding: "14px",
                   cursor: "pointer",
                   fontFamily: "'Poppins', sans-serif",
                   fontSize: "0.875rem",
                   fontWeight: "700",
-                  transition: "background 0.2s ease, color 0.2s ease",
+                  transition: "background 0.2s ease, transform 0.1s ease",
                   textAlign: "center",
                   width: "100%",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#e07b39";
-                  e.currentTarget.style.color = "#f0ece6";
+                  e.currentTarget.style.background = "#e96439";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.color = "#e07b39";
+                  e.currentTarget.style.background = "#D85A30";
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform = "scale(0.98)";
+                }}
+                onMouseUp={(e) => {
+                  e.currentTarget.style.transform = "scale(1)";
                 }}
               >
                 Clear & Regenerate
               </button>
             )}
+            </div>
           </div>
 
           {/* Card 2: Source Documents */}
           <div
             style={{
-              background: "#201d1a",
-              border: "1px solid #333028",
-              borderRadius: "12px",
+              background: "#1E1C19",
+              border: "1px solid #3A3630",
+              borderRadius: "16px",
               padding: "20px",
               display: "flex",
               flexDirection: "column",
@@ -424,22 +472,22 @@ export default function SynthesisDraftLayout({ sessionId, onStepChange }) {
                 fontFamily: "'Poppins', sans-serif",
                 fontWeight: 700,
                 fontSize: "1.05rem",
-                color: "#e07b39",
+                color: "#D98A21",
                 letterSpacing: "0.01em",
               }}
             >
               Source Documents
             </span>
 
-            <div style={{ height: "1px", background: "#333028" }} />
+            <div style={{ height: "1px", background: "#3A3630" }} />
 
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {documents.map((doc, idx) => (
                 <div
                   key={idx}
                   style={{
-                    background: "#252220",
-                    border: "1px solid #333028",
+                  background: "rgba(0, 0, 0, 0.15)",
+                  border: "1px solid #3A3630",
                     borderRadius: "8px",
                     padding: "10px 14px",
                     display: "flex",
@@ -468,7 +516,7 @@ export default function SynthesisDraftLayout({ sessionId, onStepChange }) {
                       width: "16px",
                       height: "16px",
                       borderRadius: "50%",
-                      background: "#e07b39",
+                      background: "#D85A30",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -494,8 +542,8 @@ export default function SynthesisDraftLayout({ sessionId, onStepChange }) {
         {/* Right Panel: Generated Introduction */}
         <div
           style={{
-            background: "#201d1a",
-            border: "1px solid #333028",
+            background: "#1E1C19",
+            border: "1px solid #3A3630",
             borderRadius: "12px",
             display: "flex",
             flexDirection: "column",
@@ -507,11 +555,11 @@ export default function SynthesisDraftLayout({ sessionId, onStepChange }) {
           <div
             style={{
               padding: "16px 24px",
-              borderBottom: "1px solid #333028",
+              borderBottom: "1px solid #3A3630",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              background: "#201d1a",
+              background: "rgba(0, 0, 0, 0.15)",
             }}
           >
             <span
@@ -519,7 +567,7 @@ export default function SynthesisDraftLayout({ sessionId, onStepChange }) {
                 fontFamily: "'Poppins', sans-serif",
                 fontWeight: 700,
                 fontSize: "1.05rem",
-                color: "#e07b39",
+                color: "#D98A21",
                 letterSpacing: "0.01em",
               }}
             >
@@ -532,7 +580,7 @@ export default function SynthesisDraftLayout({ sessionId, onStepChange }) {
                 onClick={() => setExportDropdownOpen(!exportDropdownOpen)}
                 disabled={generationStatus !== "complete"}
                 style={{
-                  background: generationStatus === "complete" ? "#e07b39" : "#2a2724",
+                  background: generationStatus === "complete" ? "#D85A30" : "rgba(0, 0, 0, 0.15)",
                   color: generationStatus === "complete" ? "#f0ece6" : "#8a8278",
                   border: "none",
                   borderRadius: "8px",
@@ -630,7 +678,7 @@ export default function SynthesisDraftLayout({ sessionId, onStepChange }) {
               padding: "24px",
               display: "flex",
               flexDirection: "column",
-              background: "#1e1b19",
+              background: "#1E1C19",
               overflowY: "auto",
             }}
           >
@@ -639,7 +687,7 @@ export default function SynthesisDraftLayout({ sessionId, onStepChange }) {
               <div
                 style={{
                   flex: 1,
-                  border: "1px dashed #3e3a34",
+                  border: "1px dashed #3A3630",
                   borderRadius: "8px",
                   padding: "48px 24px",
                   display: "flex",
@@ -647,7 +695,7 @@ export default function SynthesisDraftLayout({ sessionId, onStepChange }) {
                   alignItems: "center",
                   justifyContent: "center",
                   textAlign: "center",
-                  background: "rgba(37, 34, 32, 0.3)",
+                  background: "rgba(0, 0, 0, 0.15)",
                 }}
               >
                 {/* SVG Document Icon */}
@@ -790,7 +838,7 @@ export default function SynthesisDraftLayout({ sessionId, onStepChange }) {
                   style={{
                     fontSize: "1rem",
                     fontWeight: 700,
-                    color: "#e07b39",
+                    color: "#D85A30",
                     marginBottom: "12px",
                     fontFamily: "'Poppins', sans-serif",
                   }}
