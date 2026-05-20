@@ -104,8 +104,8 @@ export default function GlobalNavigationBar({ currentStep = 0, onNavigate }) {
                   color: isActive
                     ? "#f0ece6"
                     : isPast
-                    ? "rgba(240, 236, 230, 0.8)"
-                    : "rgba(240, 236, 230, 0.4)",
+                      ? "rgba(240, 236, 230, 0.8)"
+                      : "rgba(240, 236, 230, 0.4)",
                   padding: "0 20px",
                   transition: "all 0.25s ease",
                   whiteSpace: "nowrap",
