@@ -3,34 +3,47 @@ import GlobalNavigationBar from "./shared/components/GlobalNavigationBar";
 import WorkspaceImportLayout from "./module1/catalyst-import/components/WorkspaceImportLayout";
 import ValidationDashboardLayout from "./module2/literature-review/components/ValidationDashboardLayout";
 import SynthesisDraftLayout from "./module3/components/SynthesisDraftLayout";
+import LandingPage from "./landing_page/LandingPage";
 
 /**
  * App.jsx – CiteWise root
  *
+ * Step -1 → Landing Page
  * Step 0  →  Data Import        (WorkspaceImportLayout)
  * Step 1  →  AI Assessment      (ValidationDashboardLayout)
  * Step 2  →  Generate Introduction (SynthesisDraftLayout)
  *
  */
 export default function App() {
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(-1);
   const [sessionId, setSessionId] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleGetStarted = () => {
+    setIsLoading(true);
+    setTimeout(() => {
+      setStep(0);
+      setIsLoading(false);
+    }, 800);
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#1a1714" }}>
 
-      {/* Shared top navigation – controls active step indicator */}
-      <GlobalNavigationBar currentStep={step} onNavigate={setStep} />
+      {step !== -1 && <GlobalNavigationBar currentStep={step} onNavigate={setStep} />}
 
       <main style={{
         flex: 1,
-        padding: "2rem",
-        maxWidth: 1280,
+        padding: step === -1 ? 0 : "2rem",
+        maxWidth: step === -1 ? "100%" : 1280,
         width: "100%",
         margin: "0 auto",
       }}>
 
-        {/* Module 1 – Data Import */}
+        {step === -1 && (
+          <LandingPage onGetStarted={handleGetStarted} isLoading={isLoading} />
+        )}
+
         {step === 0 && (
           <WorkspaceImportLayout
             onImportSuccess={(sid) => setSessionId(sid)}
@@ -38,7 +51,6 @@ export default function App() {
           />
         )}
 
-        {/* Module 2 – AI Assessment */}
         {step === 1 && (
           <ValidationDashboardLayout
             sessionId={sessionId}
