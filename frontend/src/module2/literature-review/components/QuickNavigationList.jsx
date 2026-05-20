@@ -7,13 +7,18 @@ export default function QuickNavigationList({
   return (
     <div
       style={{
-        background: "#201d1a",
-        border: "1px solid #2e2e2e",
-        borderRadius: "12px",
+        background: "#1E1C19",
+        border: "1px solid #3A3630",
+        borderRadius: "16px",
         padding: "20px",
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: "14px",
+        boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
+        /* Grow naturally with content, but never exceed the column height */
+        maxHeight: '100%',
+        minHeight: 0,
+        overflowY: 'auto',
       }}
     >
       {/* Section Header */}
@@ -22,7 +27,7 @@ export default function QuickNavigationList({
           display: "flex",
           alignItems: "center",
           gap: "10px",
-          marginBottom: "4px",
+          marginBottom: "6px",
         }}
       >
         {/* Hamburger icon */}
@@ -33,7 +38,7 @@ export default function QuickNavigationList({
               style={{
                 width: "16px",
                 height: "2px",
-                background: "#e07b39",
+                background: "#D98A21",
                 borderRadius: "1px",
               }}
             />
@@ -42,9 +47,9 @@ export default function QuickNavigationList({
         <span
           style={{
             fontFamily: "'Poppins', sans-serif",
-            fontSize: "14px",
+            fontSize: "15px",
             fontWeight: "700",
-            color: "#f0ece6",
+            color: "#D98A21",
           }}
         >
           Quick Navigation
@@ -52,55 +57,46 @@ export default function QuickNavigationList({
       </div>
 
       {/* Document List */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         {documents.map((doc, index) => {
           const isActive = index === currentIndex;
           return (
             <div
               key={doc.id || doc.name || index}
+              onClick={() => onSelect && onSelect(index)}
               style={{
-                background: isActive ? "#252220" : "transparent",
-                border: `1px solid ${isActive ? "#333028" : "#2a2724"}`,
+                background: "rgba(0, 0, 0, 0.15)",
+                border: `1px solid ${isActive ? "#D98A21" : "#3A3630"}`,
                 borderRadius: "8px",
-                padding: "8px 10px 8px 14px",
+                padding: "10px 14px",
                 display: "flex",
                 alignItems: "center",
-                gap: "8px",
+                justifyContent: "space-between",
+                gap: "12px",
+                cursor: "pointer",
                 transition: "all 0.2s ease",
                 width: "100%",
               }}
               onMouseEnter={(e) => {
                 if (!isActive) {
-                  e.currentTarget.style.background = "#252220";
-                  e.currentTarget.style.borderColor = "#333028";
+                  e.currentTarget.style.borderColor = "#D98A21";
+                  e.currentTarget.style.background = "rgba(0, 0, 0, 0.25)";
                 }
               }}
               onMouseLeave={(e) => {
                 if (!isActive) {
-                  e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.borderColor = "#2a2724";
+                  e.currentTarget.style.borderColor = "#3A3630";
+                  e.currentTarget.style.background = "rgba(0, 0, 0, 0.15)";
                 }
               }}
             >
-              <button
-                type="button"
-                onClick={() => onSelect && onSelect(index)}
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  background: "none",
-                  border: "none",
-                  padding: "4px 0",
-                  cursor: "pointer",
-                  textAlign: "left",
-                }}
-              >
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <span
                   style={{
-                    fontFamily: "'Geist Mono', monospace",
-                    fontSize: "12px",
+                    fontFamily: "'Poppins', sans-serif",
+                    fontSize: "13px",
                     color: isActive ? "#f0ece6" : "#8a8278",
-                    fontWeight: isActive ? "600" : "400",
+                    fontWeight: isActive ? "600" : "500",
                     display: "block",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -109,8 +105,9 @@ export default function QuickNavigationList({
                 >
                   {doc.name}
                 </span>
-              </button>
+              </div>
 
+              {/* Action buttons (Delete) if needed, styled minimally */}
               {onDelete && (
                 <button
                   type="button"
@@ -129,31 +126,29 @@ export default function QuickNavigationList({
                     padding: "4px 6px",
                     borderRadius: "4px",
                     flexShrink: 0,
-                    transition: "color 0.15s",
+                    transition: "color 0.15s, transform 0.15s",
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.color = "#e05555";
+                    e.currentTarget.style.transform = "scale(1.1)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.color = "#8a8278";
+                    e.currentTarget.style.transform = "scale(1)";
                   }}
                 >
                   ✕
                 </button>
               )}
 
-              {/* Status indicator */}
+              {/* Status indicator circle */}
               <div
                 style={{
-                  width: "20px",
-                  height: "20px",
+                  width: "18px",
+                  height: "18px",
                   borderRadius: "50%",
-                  background: doc.approved
-                    ? "#e07b39"
-                    : isActive
-                    ? "#333028"
-                    : "#2a2724",
-                  border: `1px solid ${doc.approved ? "#e07b39" : "#8a8278"}`,
+                  background: doc.approved ? "#D85A30" : "transparent",
+                  border: `1px solid ${doc.approved ? "#D85A30" : "#3A3630"}`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -162,11 +157,11 @@ export default function QuickNavigationList({
                 }}
               >
                 {doc.approved && (
-                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                  <svg width="8" height="6" viewBox="0 0 10 8" fill="none">
                     <path
                       d="M1 4L3.5 6.5L9 1"
                       stroke="#f0ece6"
-                      strokeWidth="1.5"
+                      strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />

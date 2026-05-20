@@ -2,8 +2,8 @@ import React from 'react';
 
 // Map relevance level to the exact string expected by the design
 const RELEVANCE_COLORS = {
-  High: "#e07b39",
-  Medium: "#c4933f",
+  High: "#D85A30",
+  Medium: "#D98A21",
   Low: "#8a8278",
 };
 
@@ -24,8 +24,8 @@ const ExcerptItem = ({ index, quote, page, relevance }) => {
       style={{
         display: "flex",
         gap: "14px",
-        padding: "18px 0",
-        borderBottom: "1px solid #2a2a2a",
+        padding: "18px 16px",
+        borderBottom: "1px solid #3A3630",
       }}
     >
       {/* Index number box */}
@@ -33,7 +33,7 @@ const ExcerptItem = ({ index, quote, page, relevance }) => {
         style={{
           width: "32px",
           height: "32px",
-          border: "1px solid #3a3a3a",
+          border: "1px solid #3A3630",
           borderRadius: "6px",
           display: "flex",
           alignItems: "center",
@@ -92,7 +92,7 @@ const ExcerptItem = ({ index, quote, page, relevance }) => {
               color: "#8a8278",
             }}
           >
-            Relevance:{" "}
+            Relevance: {" "}
             <span
               style={{
                 color: color,
@@ -116,19 +116,21 @@ const EvidenceExcerptList = ({ excerpts }) => {
         {/* Header always visible */}
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            marginBottom: "8px",
-          }}
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                marginBottom: "8px",
+              }}
         >
-          <span style={{ fontSize: "16px" }}>📌</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D98A21" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <path d="M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.89a.5.5 0 0 0 .22.96h11.34a.5.5 0 0 0 .22-.96l-1.78-.89a2 2 0 0 1-1.11-1.79V5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5.76z" />
+          </svg>
           <span
             style={{
               fontFamily: "'Poppins', sans-serif",
               fontSize: "16px",
               fontWeight: "700",
-              color: "#e07b39",
+              color: "#D98A21",
             }}
           >
             Highlighted Evidence Excerpts
@@ -137,14 +139,14 @@ const EvidenceExcerptList = ({ excerpts }) => {
         {/* Scrollable container with empty message */}
         <div
           style={{
-            background: "#1a1714",
-            border: "1px solid #2e2e2e",
+            background: "rgba(0, 0, 0, 0.15)",
+            border: "1px solid #3A3630",
             borderRadius: "10px",
             padding: "0 20px",
             maxHeight: "320px",
             overflowY: "auto",
             scrollbarWidth: "thin",
-            scrollbarColor: "#333028 #1a1714",
+            scrollbarColor: "#333028 rgba(0, 0, 0, 0.15)",
           }}
         >
           <div
@@ -182,13 +184,15 @@ const EvidenceExcerptList = ({ excerpts }) => {
           marginBottom: "8px",
         }}
       >
-        <span style={{ fontSize: "16px" }}>📌</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D98A21" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <path d="M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.89a.5.5 0 0 0 .22.96h11.34a.5.5 0 0 0 .22-.96l-1.78-.89a2 2 0 0 1-1.11-1.79V5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5.76z" />
+        </svg>
         <span
           style={{
             fontFamily: "'Poppins', sans-serif",
             fontSize: "16px",
             fontWeight: "700",
-            color: "#e07b39",
+            color: "#D98A21",
           }}
         >
           Highlighted Evidence Excerpts
@@ -198,14 +202,14 @@ const EvidenceExcerptList = ({ excerpts }) => {
       {/* Scrollable list */}
       <div
         style={{
-          background: "#1a1714",
-          border: "1px solid #2e2e2e",
+          background: "rgba(0, 0, 0, 0.15)",
+          border: "1px solid #3A3630",
           borderRadius: "10px",
           padding: "0 20px",
           maxHeight: "320px",
           overflowY: "auto",
           scrollbarWidth: "thin",
-          scrollbarColor: "#333028 #1a1714",
+          scrollbarColor: "#333028 rgba(0, 0, 0, 0.15)",
         }}
       >
         {items.map((item, i) => (

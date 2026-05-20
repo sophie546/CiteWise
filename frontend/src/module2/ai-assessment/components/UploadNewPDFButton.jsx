@@ -6,19 +6,19 @@ export default function UploadNewPDFButton({ onClick }) {
         display: "flex",
         alignItems: "center",
         gap: "10px",
-        background: "#e07b39",
+        background: "#D85A30",
         border: "none",
-        borderRadius: "10px",
+        borderRadius: "8px",
         padding: "12px 22px",
         cursor: "pointer",
         transition: "background 0.2s ease, transform 0.1s ease",
         flexShrink: 0,
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = "#c96d2e";
+        e.currentTarget.style.background = "#e96439";
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.background = "#e07b39";
+        e.currentTarget.style.background = "#D85A30";
       }}
       onMouseDown={(e) => {
         e.currentTarget.style.transform = "scale(0.97)";

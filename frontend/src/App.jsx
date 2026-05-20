@@ -2,8 +2,8 @@ import { useState } from "react";
 import GlobalNavigationBar from "./shared/components/GlobalNavigationBar";
 import WorkspaceImportLayout from "./module1/catalyst-import/components/WorkspaceImportLayout";
 import ValidationDashboardLayout from "./module2/literature-review/components/ValidationDashboardLayout";
+import SynthesisDraftLayout from "./module3/components/SynthesisDraftLayout";
 import LandingPage from "./landing_page/LandingPage";
-// import SynthesisDraftLayout from "./features/proposal-drafting/components/SynthesisDraftLayout";
 
 /**
  * App.jsx – CiteWise root
@@ -11,7 +11,7 @@ import LandingPage from "./landing_page/LandingPage";
  * Step -1 → Landing Page
  * Step 0  →  Data Import        (WorkspaceImportLayout)
  * Step 1  →  AI Assessment      (ValidationDashboardLayout)
- * Step 2  →  Generate Introduction (placeholder until built)
+ * Step 2  →  Generate Introduction (SynthesisDraftLayout)
  *
  */
 export default function App() {
@@ -28,16 +28,16 @@ export default function App() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#1a1714" }}>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#1E1C19" }}>
 
       {step !== -1 && <GlobalNavigationBar currentStep={step} onNavigate={setStep} />}
 
       <main style={{
         flex: 1,
-        padding: step === -1 ? 0 : "2rem",
-        maxWidth: step === -1 ? "100%" : 1280,
         width: "100%",
-        margin: "0 auto",
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
       }}>
 
         {step === -1 && (
@@ -58,29 +58,12 @@ export default function App() {
           />
         )}
 
+        {/* Module 3 – Generate Introduction */}
         {step === 2 && (
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            height: "60vh",
-            flexDirection: "column",
-            gap: "0.75rem",
-          }}>
-            <p style={{
-              color: "#e07b39",
-              fontWeight: 700,
-              fontSize: "0.875rem",
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-              margin: 0,
-            }}>
-              Generate Introduction
-            </p>
-            <p style={{ color: "#8a8278", fontSize: "0.875rem", margin: 0 }}>
-              This module is coming soon.
-            </p>
-          </div>
+          <SynthesisDraftLayout
+            sessionId={sessionId}
+            onStepChange={setStep}
+          />
         )}
 
       </main>

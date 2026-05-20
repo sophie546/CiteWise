@@ -134,7 +134,7 @@ const AIAssessmentPanel = ({
           fontFamily: "'Poppins', sans-serif",
           fontSize: '22px',
           fontWeight: '700',
-          color: '#e07b39',
+          color: '#D98A21',
           margin: 0,
         }}
       >
@@ -147,18 +147,18 @@ const AIAssessmentPanel = ({
           disabled={isAssessing}
           style={{
             background: 'transparent',
-            border: '1px solid #e07b39',
+            border: '1px solid #D85A30',
             borderRadius: '20px',
             padding: '6px 16px',
             fontFamily: "'Geist Mono', monospace",
             fontSize: '12px',
             fontWeight: 500,
-            color: '#e07b39',
+            color: '#D98A21',
             cursor: isAssessing ? 'not-allowed' : 'pointer',
             transition: 'all 0.2s ease',
           }}
           onMouseEnter={(e) => {
-            if (!isAssessing) e.currentTarget.style.background = 'rgba(224,123,57,0.06)';
+            if (!isAssessing) e.currentTarget.style.background = 'rgba(216,90,48,0.06)';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'transparent';
@@ -176,50 +176,47 @@ const AIAssessmentPanel = ({
     return (
       <div
         style={{
-          background: '#201d1a',
-          border: '1px solid #2e2e2e',
-          borderRadius: '12px',
-          padding: '28px',
+          background: '#1E1C19',
+          border: '1px solid #3A3630',
+          borderRadius: '16px',
+          padding: 0,
           display: 'flex',
           flexDirection: 'column',
           gap: '32px',
           flex: 1,
           minWidth: 0,
+          boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
+          overflow: 'hidden',
         }}
       >
-        <PanelHeader />
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: '200px',
-            flexDirection: 'column',
-            gap: '12px',
-          }}
-        >
-          <svg
-            width="48"
-            height="48"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#8a8278"
-            strokeWidth="1"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <p
-            style={{
-              fontFamily: "'Geist Mono', monospace",
-              fontSize: '13px',
-              color: '#8a8278',
-              margin: 0,
-            }}
-          >
-            Select a document to view AI insights.
-          </p>
+        <div style={{ padding: '1.125rem 1.5rem', background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3A3630' }}>
+          <PanelHeader />
+        </div>
+        <div style={{ padding: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', flexDirection: 'column', gap: '12px' }}>
+            <svg
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#8a8278"
+              strokeWidth="1"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p
+              style={{
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: '13px',
+                color: '#8a8278',
+                margin: 0,
+              }}
+            >
+              Select a document to view AI insights.
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -230,26 +227,23 @@ const AIAssessmentPanel = ({
     return (
       <div
         style={{
-          background: '#201d1a',
-          border: '1px solid #2e2e2e',
-          borderRadius: '12px',
-          padding: '28px',
+          background: '#1E1C19',
+          border: '1px solid #3A3630',
+          borderRadius: '16px',
+          padding: 0,
           display: 'flex',
           flexDirection: 'column',
           gap: '32px',
           flex: 1,
           minWidth: 0,
+          boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
+          overflow: 'hidden',
         }}
       >
-        <PanelHeader />
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: '200px',
-          }}
-        >
+        <div style={{ padding: '1.125rem 1.5rem', background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3A3630' }}>
+          <PanelHeader />
+        </div>
+        <div style={{ padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
           <div
             style={{
               fontFamily: "'Geist Mono', monospace",
@@ -270,47 +264,53 @@ const AIAssessmentPanel = ({
     return (
       <div
         style={{
-          background: '#201d1a',
-          border: '1px solid #2e2e2e',
-          borderRadius: '12px',
-          padding: '28px',
+          background: '#1E1C19',
+          border: '1px solid #3A3630',
+          borderRadius: '16px',
+          padding: 0,
           display: 'flex',
           flexDirection: 'column',
           gap: '32px',
           flex: 1,
           minWidth: 0,
+          boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
+          overflow: 'hidden',
         }}
       >
-        <PanelHeader />
-        <div
-          style={{
-            background: '#201d1a',
-            border: '1px solid #5a2a2a',
-            borderRadius: '8px',
-            padding: '16px',
-            textAlign: 'center',
-          }}
-        >
-          <h3
+        <div style={{ padding: '1.125rem 1.5rem', background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3A3630' }}>
+          <PanelHeader />
+        </div>
+        <div style={{ padding: '20px' }}>
+          <div
             style={{
-              fontFamily: "'Poppins', sans-serif",
-              fontSize: '16px',
-              color: '#e07b39',
-              margin: '0 0 8px 0',
+              background: 'rgba(0, 0, 0, 0.15)',
+              border: '1px solid #5a2a2a',
+              borderRadius: '8px',
+              padding: '16px',
+              textAlign: 'center',
             }}
           >
-            Analysis Error
-          </h3>
-          <p
-            style={{
-              fontFamily: "'Geist Mono', monospace",
-              fontSize: '13px',
-              color: '#f0ece6',
-              margin: 0,
-            }}
-          >
-            {resolvedError}
-          </p>
+            <h3
+              style={{
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: '16px',
+                color: '#D98A21',
+                margin: '0 0 8px 0',
+              }}
+            >
+              Analysis Error
+            </h3>
+            <p
+              style={{
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: '13px',
+                color: '#f0ece6',
+                margin: 0,
+              }}
+            >
+              {resolvedError}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -324,27 +324,23 @@ const AIAssessmentPanel = ({
     return (
       <div
         style={{
-          background: '#201d1a',
-          border: '1px solid #2e2e2e',
-          borderRadius: '12px',
-          padding: '28px',
+          background: '#1E1C19',
+          border: '1px solid #3A3630',
+          borderRadius: '16px',
+          padding: 0,
           display: 'flex',
           flexDirection: 'column',
           gap: '32px',
           flex: 1,
           minWidth: 0,
+          boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
+          overflow: 'hidden',
         }}
       >
-        <PanelHeader />
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: '200px',
-            textAlign: 'center',
-          }}
-        >
+        <div style={{ padding: '1.125rem 1.5rem', background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3A3630' }}>
+          <PanelHeader />
+        </div>
+        <div style={{ padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', textAlign: 'center' }}>
           <p
             style={{
               fontFamily: "'Geist Mono', monospace",
@@ -363,21 +359,27 @@ const AIAssessmentPanel = ({
   return (
     <div
       style={{
-        background: '#201d1a',
-        border: '1px solid #2e2e2e',
-        borderRadius: '12px',
-        padding: '28px',
+        background: '#1E1C19',
+        border: '1px solid #3A3630',
+        borderRadius: '16px',
+        padding: 0,
         display: 'flex',
         flexDirection: 'column',
         gap: '32px',
         flex: 1,
         minWidth: 0,
+        boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
+        overflow: 'hidden',
       }}
     >
-      <PanelHeader />
-      <EvidenceExcerptList excerpts={mappedData.excerpts} />
-      <div style={{ borderTop: '1px solid #2a2a2a', margin: '-8px 0' }} />
-      <SemanticScoreDashboard scores={mappedData.scores} />
+      <div style={{ padding: '1.125rem 1.5rem', background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3A3630' }}>
+        <PanelHeader />
+      </div>
+      <div style={{ padding: '0px 20px 20px 20px' }}>
+        <EvidenceExcerptList excerpts={mappedData.excerpts} />
+        <div style={{ height: '35px' }} />
+        <SemanticScoreDashboard scores={mappedData.scores} />
+      </div>
     </div>
   );
 };

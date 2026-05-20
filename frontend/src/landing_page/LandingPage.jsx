@@ -90,7 +90,7 @@ const LandingPage = ({ onGetStarted, isLoading }) => {
         left: 0,
         right: 0,
         bottom: 0,
-        background: "#0E0D0B",
+        background: "#1E1C19",
         zIndex: 9999,
         display: "flex",
         alignItems: "center",
@@ -101,8 +101,8 @@ const LandingPage = ({ onGetStarted, isLoading }) => {
         <div style={{
           width: "60px",
           height: "60px",
-          border: "3px solid rgba(255,106,32,0.2)",
-          borderTop: "3px solid #ff6a20",
+          border: "3px solid rgba(216, 90, 48, 0.2)",
+          borderTop: "3px solid #D85A30",
           borderRadius: "50%",
           animation: "spin 0.8s linear infinite",
         }} />
@@ -114,7 +114,7 @@ const LandingPage = ({ onGetStarted, isLoading }) => {
 
   return (
     <div style={{
-      background: "#0E0D0B",
+      background: "#1E1C19",
       minHeight: "100vh",
       fontFamily: "'Poppins', sans-serif",
       color: "white",

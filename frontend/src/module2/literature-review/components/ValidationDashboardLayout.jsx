@@ -29,6 +29,9 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
     averageScore: 0,
   });
 
+  // Success toast for synthesis workflow
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+
   const activeDoc = documents[currentIndex];
 
   useEffect(() => {
@@ -272,9 +275,35 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
   };
 
   const handleProceed = () => {
-    // Module 3 (SynthesisDraftLayout) not yet wired — stay on current view
-    onStepChange(1); 
+    setShowSuccessToast(true);
+    setTimeout(() => {
+      onStepChange(2);
+    }, 2200);
   };
+
+  // CSS animations for success toast
+  const styleInject = (
+    <style>{`
+      @keyframes fadeInToast {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes scaleInToast {
+        from { transform: scale(0.8); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+      }
+      @keyframes pulseRing {
+        0%, 100% { box-shadow: 0 0 20px rgba(216, 90, 48, 0.2); }
+        50% { box-shadow: 0 0 40px rgba(216, 90, 48, 0.4); }
+      }
+      @keyframes drawCheckmark {
+        to { stroke-dashoffset: 0; }
+      }
+      @keyframes fillProgress {
+        to { width: 100%; }
+      }
+    `}</style>
+  );
 
   return (
     <div
@@ -285,22 +314,106 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
         flex: 1,
       }}
     >
+      {styleInject}
+
+      {showSuccessToast && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(14, 12, 10, 0.75)",
+          backdropFilter: "blur(12px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 9999,
+          animation: "fadeInToast 0.3s ease-out forwards",
+        }}>
+          <div style={{
+            background: "#1E1C19",
+            border: "1px solid rgba(217, 138, 33, 0.25)",
+            borderRadius: "24px",
+            padding: "2.5rem 3rem",
+            maxWidth: "480px",
+            width: "90%",
+            textAlign: "center",
+            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(216, 90, 48, 0.15)",
+            animation: "scaleInToast 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
+          }}>
+            <div style={{
+              width: "80px",
+              height: "80px",
+              borderRadius: "50%",
+              background: "rgba(216, 90, 48, 0.1)",
+              border: "2px solid #D85A30",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 1.5rem",
+              boxShadow: "0 0 20px rgba(216, 90, 48, 0.2)",
+              animation: "pulseRing 2s infinite",
+            }}>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#D98A21" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" style={{
+                  strokeDasharray: 50,
+                  strokeDashoffset: 50,
+                  animation: "drawCheckmark 0.6s ease-out 0.2s forwards",
+                }} />
+              </svg>
+            </div>
+            <h3 style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: 800,
+              fontSize: "1.5rem",
+              color: "#f0ece6",
+              margin: "0 0 0.5rem 0",
+              letterSpacing: "0.01em",
+            }}>
+              Synthesis Starting
+            </h3>
+            <p style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "0.95rem",
+              color: "rgba(240, 236, 230, 0.7)",
+              lineHeight: "1.6",
+              margin: "0 0 1.75rem 0",
+            }}>
+              Your validated documents are being synthesized. Preparing the synthesis dashboard.
+            </p>
+            <div style={{
+              width: "100%",
+              height: "4px",
+              background: "rgba(255, 255, 255, 0.08)",
+              borderRadius: "2px",
+              overflow: "hidden",
+            }}>
+              <div style={{
+                height: "100%",
+                background: "linear-gradient(90deg, #D98A21, #D85A30)",
+                width: "0%",
+                borderRadius: "2px",
+                animation: "fillProgress 2.2s linear forwards",
+              }} />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Structural Flex/Grid Row Container */}
-      <main
+      <div
         style={{
+          maxWidth: 1280,
+          width: "100%",
+          margin: "0 auto",
+          padding: "24px 32px",
           flex: 1,
           display: "grid",
           gridTemplateColumns: "320px 1fr",
           gap: "24px",
-          padding: "24px 32px",
-          maxWidth: 1280,
-          margin: "0 auto",
-          width: "100%",
           minHeight: 0,
         }}
       >
         {/* Left Interactive Document Control Stack */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "20px", minHeight: 0 }}>
           <DocumentActiveCard
             documents={documents}
             currentIndex={currentIndex}
@@ -324,7 +437,7 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
           onAssess={handleAssessDocument}
           onUploadClick={handleUploadNew}
         />
-      </main>
+      </div>
 
       {/* Real-time server validated aggregates status board footer */}
       <ValidationSummaryFooter
