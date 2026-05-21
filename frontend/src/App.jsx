@@ -42,10 +42,22 @@ export default function App() {
     }, 800);
   };
 
+  const handleLogoClick = () => {
+    setStep(-1);
+    // Optional: Clear session if you want to reset everything
+    // setSessionId("");
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#1E1C19" }}>
 
-      {step !== -1 && <GlobalNavigationBar currentStep={step} onNavigate={setStep} />}
+      {step !== -1 && (
+        <GlobalNavigationBar 
+          currentStep={step} 
+          onNavigate={setStep}
+          onLogoClick={handleLogoClick}
+        />
+      )}
 
       <main style={{
         flex: 1,

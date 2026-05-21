@@ -1,6 +1,12 @@
 const STEPS = ["Data Import", "AI Assessment", "Generate Introduction"];
 
-export default function GlobalNavigationBar({ currentStep = 0, onNavigate }) {
+export default function GlobalNavigationBar({ currentStep = 0, onNavigate, onLogoClick }) {
+  const handleLogoClick = () => {
+    if (onLogoClick) {
+      onLogoClick();
+    }
+  };
+
   return (
     <nav
       style={{
@@ -23,8 +29,11 @@ export default function GlobalNavigationBar({ currentStep = 0, onNavigate }) {
           justifyContent: "space-between",
         }}
       >
-        {/* Logo Block */}
-        <div style={{ display: "flex", alignItems: "center" }}>
+        {/* Logo Block - Clickable */}
+        <div 
+          style={{ display: "flex", alignItems: "center", cursor: "pointer" }}
+          onClick={handleLogoClick}
+        >
           {/* Elite Premium SVG Isometric Diamond Logo */}
           <div
             style={{
@@ -39,7 +48,6 @@ export default function GlobalNavigationBar({ currentStep = 0, onNavigate }) {
               border: "1px solid rgba(217, 138, 33, 0.2)",
               boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
               transition: "transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-              cursor: "pointer",
             }}
             onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.08) rotate(5deg)")}
             onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1) rotate(0deg)")}
@@ -78,7 +86,10 @@ export default function GlobalNavigationBar({ currentStep = 0, onNavigate }) {
               color: "#f0ece6",
               letterSpacing: "-0.01em",
               userSelect: "none",
+              transition: "opacity 0.2s ease",
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.8")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
           >
             CiteWise
           </span>
