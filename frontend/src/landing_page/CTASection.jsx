@@ -11,7 +11,14 @@ const CTASection = ({ onGetStarted, isLoading }) => {
 
   const handleButtonClick = (buttonName) => {
     setClickedButton(buttonName)
-    onGetStarted()
+    
+    if (buttonName === 'cta-get-started') {
+      onGetStarted()
+    } else if (buttonName === 'cta-visit') {
+      // Open Catalyst frontend in new tab
+      window.open('https://catalyst-nu-gilt.vercel.app/groups', '_blank', 'noopener,noreferrer')
+    }
+    
     setTimeout(() => setClickedButton(null), 800)
   }
 
@@ -143,16 +150,6 @@ const CTASection = ({ onGetStarted, isLoading }) => {
           }}
           disabled={isLoading}
         >
-          {clickedButton === 'cta-visit' && (
-            <div style={{
-              width: "16px",
-              height: "16px",
-              border: "2px solid rgba(255,255,255,0.2)",
-              borderTop: "2px solid white",
-              borderRadius: "50%",
-              animation: "spin 0.6s linear infinite",
-            }} />
-          )}
           Visit Catalyst
         </button>
       </div>
