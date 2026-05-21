@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import GlobalNavigationBar from "./shared/components/GlobalNavigationBar";
 import WorkspaceImportLayout from "./module1/catalyst-import/components/WorkspaceImportLayout";
 import ValidationDashboardLayout from "./module2/literature-review/components/ValidationDashboardLayout";
-import SynthesisDraftWorkspace from "./module3/synthesis-draft/components/SynthesisDraftWorkspace";
+import SynthesisDraftModule from "./module3/synthesis-draft/components/SynthesisDraftModule";
 import LandingPage from "./landing_page/LandingPage";
 
 /**
@@ -11,7 +11,7 @@ import LandingPage from "./landing_page/LandingPage";
  * Step -1 → Landing Page
  * Step 0  →  Data Import        (WorkspaceImportLayout)
  * Step 1  →  AI Assessment      (ValidationDashboardLayout)
- * Step 2  →  Generate Introduction (SynthesisDraftLayout)
+ * Step 2  →  Generate Introduction (SynthesisDraftModule)
  *
  */
 export default function App() {
@@ -87,7 +87,7 @@ export default function App() {
 
         {/* Module 3 – Generate Introduction */}
         {step === 2 && (
-          <SynthesisDraftWorkspace
+          <SynthesisDraftModule
             sessionId={sessionId}
             onStepChange={setStep}
           />
