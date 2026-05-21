@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import GlobalNavigationBar from "./shared/components/GlobalNavigationBar";
 import WorkspaceImportLayout from "./module1/catalyst-import/components/WorkspaceImportLayout";
 import ValidationDashboardLayout from "./module2/literature-review/components/ValidationDashboardLayout";
-import SynthesisDraftLayout from "./module3/components/SynthesisDraftLayout";
+import SynthesisDraftWorkspace from "./module3/synthesis-draft/components/SynthesisDraftWorkspace";
 import LandingPage from "./landing_page/LandingPage";
 
 /**
@@ -75,7 +75,7 @@ export default function App() {
 
         {/* Module 3 – Generate Introduction */}
         {step === 2 && (
-          <SynthesisDraftLayout
+          <SynthesisDraftWorkspace
             sessionId={sessionId}
             onStepChange={setStep}
           />
