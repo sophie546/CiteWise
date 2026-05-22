@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";  // ← ADDED useEffect
 import ImportHeaderBar from "./ImportHeaderBar";
 import DataDisplayGrid from "./DataDisplayGrid";
 import DragDropZone from "../../rrl-upload/components/DragDropZone";
@@ -39,35 +39,102 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
   const [statusMessage, setStatusMessage] = useState("Ready to upload");
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
-  // ── CATalyst Import ────────────────────────────────────────────
+  // ✅ ADD THIS useEffect - Restores session on page refresh
+  useEffect(() => {
+    const savedSessionId = localStorage.getItem(STORAGE_SESSION_KEY);
+    const savedCatalystData = localStorage.getItem(STORAGE_CATALYST_KEY);
+    
+    if (savedSessionId && !sessionId) {
+      setSessionId(savedSessionId);
+      console.log("✅ Restored session ID:", savedSessionId);
+    }
+    
+    if (savedCatalystData && !catalystData) {
+      try {
+        setCatalystData(JSON.parse(savedCatalystData));
+        console.log("✅ Restored catalyst data");
+      } catch (err) {
+        console.error("Failed to restore catalyst data:", err);
+      }
+    }
+  }, []); // Runs once on component mount
+
   const handleImport = async () => {
     const trimmed = workspaceId.trim();
     if (!trimmed) {
       setError("Workspace ID is required.");
       return;
     }
+    
+    // ✅ CHECK: Do we already have a session ID?
+    const existingSessionId = localStorage.getItem(STORAGE_SESSION_KEY);
+    if (existingSessionId) {
+      console.log("✅ Using existing session ID:", existingSessionId);
+      console.log("   Not creating a new one!");
+      
+      // Just refresh the catalyst data, don't create new session
+      try {
+        const response = await fetch(`/api/catalyst/${encodeURIComponent(trimmed)}`);
+        const payload = await response.json();
+        if (payload?.success) {
+          const catalystData = {
+            title: payload.data?.title,
+            rationale: payload.data?.rationale,
+            gaps: payload.data?.gaps
+          };
+          setCatalystData(catalystData);
+          localStorage.setItem(STORAGE_CATALYST_KEY, JSON.stringify(catalystData));
+        }
+      } catch (err) {
+        setError(err.message);
+      }
+      setIsLoading(false);
+      return;
+    }
+    
+    // Only create NEW session if NO existing session
     setHasAttempted(true);
     setError("");
     setCatalystData(null);
     setIsLoading(true);
+    
     try {
-      const response = await fetch(`/api/catalyst/${encodeURIComponent(trimmed)}`);
+      const response = await fetch(`/api/catalyst/import`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workspaceId: trimmed })
+      });
+      
       const payload = await response.json();
+      
       if (!response.ok || !payload?.success) {
-        throw new Error(payload?.message || "Unable to load CATalyst data.");
+        throw new Error(payload?.message || "Unable to import CATalyst workspace.");
       }
-      setCatalystData(payload.data);
-      localStorage.setItem(STORAGE_CATALYST_KEY, JSON.stringify(payload.data));
-      const sid = payload.sessionId || trimmed;
-      localStorage.setItem(STORAGE_SESSION_KEY, sid);
-      setSessionId(sid);
-      onImportSuccess?.(sid);
+      
+      const catalystResponseData = {
+        title: payload.data?.title,
+        rationale: payload.data?.rationale,
+        gaps: payload.data?.gaps
+      };
+      
+      setCatalystData(catalystResponseData);
+      localStorage.setItem(STORAGE_CATALYST_KEY, JSON.stringify(catalystResponseData));
+      
+      const newSessionId = payload.data?.sessionId;
+      if (newSessionId) {
+        localStorage.setItem(STORAGE_SESSION_KEY, newSessionId);
+        setSessionId(newSessionId);
+        onImportSuccess?.(newSessionId);
+        console.log("✅ New session created:", newSessionId);
+      }
+      
     } catch (err) {
       setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
+
 
   // ── RRL Upload ─────────────────────────────────────────────────
   const appendFiles = (incomingFiles) => {
@@ -170,6 +237,17 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
     }
   };
 
+  const resetSession = () => {
+    if (confirm("⚠️ This will clear all your uploaded documents and session data. Are you sure?")) {
+      localStorage.removeItem(STORAGE_SESSION_KEY);
+      localStorage.removeItem(STORAGE_CATALYST_KEY);
+      setSessionId("");
+      setCatalystData(null);
+      setFileQueue([]);
+      window.location.reload();
+    }
+  };
+
   const readyCount = fileQueue.filter((i) => i.status === "queued").length;
   const totalCount = fileQueue.length;
 
@@ -200,7 +278,6 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
             boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(216, 90, 48, 0.15)",
             animation: "scaleInToast 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
           }}>
-            {/* Animated Ring & Checkmark */}
             <div style={{
               width: "80px",
               height: "80px",
@@ -244,7 +321,6 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
               Your research literature has been successfully synchronized. Preparing the validation dashboard.
             </p>
 
-            {/* Premium Loader/Progress Indicator bar */}
             <div style={{
               width: "100%",
               height: "4px",
@@ -266,7 +342,6 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
 
       {/* ── Card 1: CATalyst Data Import ─────────────────────────── */}
       <div style={card}>
-        {/* Card header row: title left, input+button right */}
         <div style={cardHeader}>
           <span style={cardTitle}>CATalyst Data Import</span>
           <ImportHeaderBar
@@ -277,7 +352,6 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
           />
         </div>
 
-        {/* Data columns – 3-up grid with inner cards */}
         <DataDisplayGrid
           catalystData={catalystData}
           isLoading={isLoading}
@@ -290,9 +364,31 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
       <div style={card}>
         <div style={cardHeader}>
           <span style={cardTitle}>RRL Document Upload</span>
+          {/* ✅ ADD RESET BUTTON HERE */}
+          <button
+            onClick={resetSession}
+            style={{
+              background: "transparent",
+              border: "1px solid #e05555",
+              borderRadius: "6px",
+              color: "#e05555",
+              padding: "6px 12px",
+              fontSize: "0.7rem",
+              cursor: "pointer",
+              fontFamily: "'Poppins', sans-serif",
+              transition: "all 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(224, 85, 85, 0.1)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
+          >
+            Reset Session
+          </button>
         </div>
 
-        {/* Drop zone + file list side by side */}
         <div
           style={{
             display: "grid",
@@ -303,7 +399,6 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
         >
           <DragDropZone onFilesAdded={appendFiles} maxFileMB={MAX_FILE_MB} />
 
-          {/* Selected Files panel */}
           <div
             style={{
               background: "rgba(0, 0, 0, 0.15)",
@@ -332,7 +427,6 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
               )}
             </div>
 
-            {/* Light black inner list container */}
             <div
               style={{
                 background: "rgba(0, 0, 0, 0.15)",
@@ -348,7 +442,6 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
           </div>
         </div>
 
-        {/* Upload button + status bar */}
         <div
           style={{
             display: "grid",
@@ -371,7 +464,7 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
   );
 }
 
-// Style injection to handle page-wide premium animations
+// Style injection
 const styleInject = (
   <style dangerouslySetInnerHTML={{
     __html: `

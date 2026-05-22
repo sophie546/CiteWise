@@ -5,15 +5,36 @@ import UploadAllButton from "./UploadAllButton";
 import UploadStatusBar from "./UploadStatusBar";
 
 const MAX_FILE_MB = 20;
-const STORAGE_SESSION_KEY = "citewise.sessionId";
+const STORAGE_SESSION_KEY = "citewise.session_id";
 
 function buildFileKey(file) {
   return `${file.name.toLowerCase()}-${file.size}-${file.lastModified}`;
 }
 
+// Helper function to generate a session ID
+function generateSessionId() {
+  if (crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
 export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComplete }) {
-  const [sessionId, setSessionId] = useState(() => propSessionId || localStorage.getItem(STORAGE_SESSION_KEY) || "");
+  // Auto-generate session ID if none exists
+  const [sessionId, setSessionId] = useState(() => {
+    if (propSessionId) return propSessionId;
+    const stored = localStorage.getItem(STORAGE_SESSION_KEY);
+    if (stored) return stored;
+    // Generate new session ID
+    const newSessionId = generateSessionId();
+    localStorage.setItem(STORAGE_SESSION_KEY, newSessionId);
+    return newSessionId;
+  });
+  
   const STORAGE_UPLOADS_KEY = "citewise.uploadedDocs";
+  const [fileQueue, setFileQueue] = useState([]);
+  const [uploadState, setUploadState] = useState("ready");
+  const [statusMessage, setStatusMessage] = useState("Ready to upload");
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_UPLOADS_KEY);
@@ -26,9 +47,6 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
       }
     }
   }, []);
-  const [fileQueue, setFileQueue] = useState([]);
-  const [uploadState, setUploadState] = useState("ready");
-  const [statusMessage, setStatusMessage] = useState("Ready to upload");
 
   useEffect(() => {
     if (sessionId) localStorage.setItem(STORAGE_SESSION_KEY, sessionId);
@@ -79,7 +97,7 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
     const readyFiles = fileQueue.filter((item) => item.status === "queued");
     if (!sessionId.trim()) {
       setUploadState("error");
-      setStatusMessage("Session ID missing. Please import CATalyst data first.");
+      setStatusMessage("Session ID missing. Please refresh the page.");
       return;
     }
     if (!readyFiles.length) {
@@ -97,9 +115,9 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
     const formData = new FormData();
     readyFiles.forEach((item) => formData.append("files", item.file));
     try {
-      const response = await fetch("/api/v1/documents/upload", {
+      const response = await fetch("/api/rrl/upload", {
         method: "POST",
-        headers: { "Session-Id": sessionId.trim() },
+        headers: { "X-Session-Id": sessionId.trim() },
         body: formData,
       });
       const payload = await response.json().catch(() => null);
@@ -151,6 +169,11 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
     setStatusMessage("Ready to upload");
   };
 
+    const clearSession = () => {
+    localStorage.removeItem('citewise.session_id');
+    window.location.reload();
+  };
+
   const readyCount = fileQueue.filter((i) => i.status === "queued").length;
   const totalCount = fileQueue.length;
 
@@ -161,24 +184,23 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
           <h2 style={{ fontSize: "1.25rem", fontWeight: 700, color: "#e07b39", margin: 0 }}>RRL document upload</h2>
           <p style={{ fontSize: "0.8rem", color: "#8a8278", margin: "0.25rem 0 0" }}>Upload candidate Review of Related Literature PDFs for parsing.</p>
         </div>
-        <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-          <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "#8a8278" }}>Workspace session ID</span>
-          <input
-            type="text"
-            value={sessionId}
-            onChange={(e) => setSessionId(e.target.value)}
-            placeholder="Paste session ID"
-            style={{
-              background: "#2a2724",
-              border: "1px solid #333028",
-              borderRadius: "8px",
-              color: "#f0ece6",
-              padding: "0.5rem 0.875rem",
-              fontSize: "0.875rem",
-              width: "260px",
-            }}
-          />
-        </label>
+        {/* Changed from input to display-only div */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+          <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "#8a8278" }}>Session ID</span>
+          <div style={{
+            background: "#2a2724",
+            border: "1px solid #333028",
+            borderRadius: "8px",
+            color: "#f0ece6",
+            padding: "0.5rem 0.875rem",
+            fontSize: "0.875rem",
+            width: "260px",
+            fontFamily: "monospace",
+            wordBreak: "break-all",
+          }}>
+            {sessionId || "Loading..."}
+          </div>
+        </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
         <DragDropZone onFilesAdded={appendFiles} maxFileMB={MAX_FILE_MB} />

@@ -4,16 +4,21 @@ import QuickNavigationList from "./QuickNavigationList";
 import AIAssessmentPanel from "../../ai-assessment/components/AIAssessmentPanel";
 import ValidationSummaryFooter from "./ValidationSummaryFooter";
 
-export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
-  const STORAGE_SESSION_KEY = "citewise.sessionId";
+export default function ValidationDashboardLayout({ sessionId: propSessionId, onStepChange }) {
+  const STORAGE_SESSION_KEY = "citewise.session_id";
 
-  const [resolvedSessionId, setResolvedSessionId] = useState(
-    () => sessionId || localStorage.getItem(STORAGE_SESSION_KEY) || ""
-  );
+  // Use sessionId from prop or generate/get from localStorage
+  const [resolvedSessionId, setResolvedSessionId] = useState(() => {
+    if (propSessionId) return propSessionId;
+    const stored = localStorage.getItem(STORAGE_SESSION_KEY);
+    if (stored) return stored;
+    // Generate new session ID if none exists
+    const newSessionId = crypto.randomUUID ? crypto.randomUUID() : 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem(STORAGE_SESSION_KEY, newSessionId);
+    return newSessionId;
+  });
 
-  // Primary list state populated from backend session documents
   const [documents, setDocuments] = useState([]);
-
   const [currentIndex, setCurrentIndex] = useState(0);
   const [activeInsights, setActiveInsights] = useState(null);
   const [isInsightsLoading, setIsInsightsLoading] = useState(false);
@@ -21,25 +26,21 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
   const [assessVersion, setAssessVersion] = useState(0);
   const pollAttemptsRef = useRef(0);
   const MAX_INSIGHTS_POLL_ATTEMPTS = 50;
-
-  // Server-driven aggregate metrics tracking DocumentValidationService properties
   const [batchStats, setBatchStats] = useState({
     approvedCount: 0,
     totalCount: 0,
     averageScore: 0,
   });
-
-  // Success toast for synthesis workflow
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
   const activeDoc = documents[currentIndex];
 
+  // Save sessionId to localStorage when it changes
   useEffect(() => {
-    if (sessionId) {
-      localStorage.setItem(STORAGE_SESSION_KEY, sessionId);
-      setResolvedSessionId(sessionId);
+    if (resolvedSessionId) {
+      localStorage.setItem(STORAGE_SESSION_KEY, resolvedSessionId);
     }
-  }, [sessionId]);
+  }, [resolvedSessionId]);
 
   const formatBytes = (bytes) => {
     if (bytes === null || bytes === undefined) return "-";
@@ -71,7 +72,11 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
   const fetchDocuments = useCallback(async () => {
     if (!resolvedSessionId) return;
     try {
-      const response = await fetch(`/api/v1/documents/session/${resolvedSessionId}`);
+      const response = await fetch(`/api/v1/documents/session/${resolvedSessionId}`, {
+        headers: {
+          'X-Session-Id': resolvedSessionId,
+        }
+      });
       if (!response.ok) return;
       const data = await response.json();
       setDocuments((prev) => mapDocuments(Array.isArray(data) ? data : [], prev));
@@ -93,7 +98,6 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
     }
   }, [documents.length, currentIndex]);
 
-  // Fetch n8n-backed insights for the selected document; poll until ready (max ~2.5 min)
   useEffect(() => {
     if (!activeDoc?.id) {
       setActiveInsights(null);
@@ -113,6 +117,9 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
       try {
         const response = await fetch(`/api/v1/documents/${activeDoc.id}/insights`, {
           cache: "no-store",
+          headers: {
+            'X-Session-Id': resolvedSessionId,
+          }
         });
         if (cancelled) return;
 
@@ -156,7 +163,7 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
       cancelled = true;
       if (pollTimeout) clearTimeout(pollTimeout);
     };
-  }, [activeDoc?.id, assessVersion]);
+  }, [activeDoc?.id, assessVersion, resolvedSessionId]);
 
   const handleAssessDocument = useCallback(async () => {
     if (!activeDoc?.id) return;
@@ -167,6 +174,9 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
     try {
       const response = await fetch(`/api/v1/documents/${activeDoc.id}/assess`, {
         method: "POST",
+        headers: {
+          'X-Session-Id': resolvedSessionId,
+        }
       });
       if (!response.ok) {
         console.warn("Failed to start assessment");
@@ -180,7 +190,7 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
       setIsInsightsLoading(false);
       setInsightsPollExhausted(true);
     }
-  }, [activeDoc?.id]);
+  }, [activeDoc?.id, resolvedSessionId]);
 
   useEffect(() => {
     const approved = documents.filter((doc) => doc.approved).length;
@@ -195,20 +205,15 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
     });
   }, [documents]);
 
-
-  // ── ARCHITECTURE STEP: Human-in-the-Loop PATCH Toggle ──
-  // Fires sequence interaction #3 directly to DocumentApprovalController
   const handleApprovalToggle = async (index) => {
     const docToToggle = documents[index];
     const targetApprovalState = !docToToggle.approved;
 
-    // Optimistically update frontend UI toggle switch state
     const updatedDocs = documents.map((doc, i) =>
       i === index ? { ...doc, approved: targetApprovalState } : doc
     );
     setDocuments(updatedDocs);
 
-    // Always update footer stats locally so UI reflects current state immediately
     setBatchStats((prev) => ({
       ...prev,
       approvedCount: updatedDocs.filter((d) => d.approved).length,
@@ -220,7 +225,7 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          "Session-Id": sessionId,
+          "X-Session-Id": resolvedSessionId,
         },
         body: JSON.stringify({
           status: targetApprovalState ? "APPROVED" : "READY",
@@ -229,16 +234,13 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
 
       if (response.ok) {
         const data = await response.json();
-        // Server responds with recalculations computed by DocumentValidationService
         setBatchStats({
           approvedCount: data.batchStats.approvedCount,
           totalCount: updatedDocs.length,
           averageScore: data.batchStats.averageScore,
         });
       }
-      // No rollback — keep optimistic state to avoid jarring UX
     } catch (err) {
-      // Backend unavailable — optimistic state is already applied, no rollback
       console.warn("Backend sync skipped (offline):", err.message);
     }
   };
@@ -259,6 +261,9 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
     try {
       const response = await fetch(`/api/v1/documents/${docToDelete.id}`, {
         method: "DELETE",
+        headers: {
+          'X-Session-Id': resolvedSessionId,
+        }
       });
       if (!response.ok && response.status !== 404) {
         await fetchDocuments();
@@ -270,18 +275,24 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
   };
 
   const handleUploadNew = () => {
-    // Module 1 (WorkspaceImportLayout) not yet wired — stay on current view
-    onStepChange(1); 
+    onStepChange(1);
   };
 
   const handleProceed = () => {
+    const approvedDocs = documents.filter(doc => doc.approved === true);
+    
+    console.log("Approved documents to pass:", approvedDocs);
+    
+    // Save to session-specific localStorage key
+    const storageKey = `citewise_approved_docs_${resolvedSessionId}`;
+    localStorage.setItem(storageKey, JSON.stringify(approvedDocs));
+    
     setShowSuccessToast(true);
     setTimeout(() => {
-      onStepChange(2);
+      onStepChange(2, resolvedSessionId); // Pass sessionId to Module 3
     }, 2200);
   };
 
-  // CSS animations for success toast
   const styleInject = (
     <style>{`
       @keyframes fadeInToast {
@@ -398,7 +409,6 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
         </div>
       )}
 
-      {/* Main Structural Flex/Grid Row Container */}
       <div
         style={{
           maxWidth: 1280,
@@ -412,7 +422,6 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
           minHeight: 0,
         }}
       >
-        {/* Left Interactive Document Control Stack */}
         <div style={{ display: "flex", flexDirection: "column", gap: "20px", minHeight: 0 }}>
           <DocumentActiveCard
             documents={documents}
@@ -428,7 +437,6 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
           />
         </div>
 
-        {/* Right Isolated Semantic Metric Viewport */}
         <AIAssessmentPanel
           documentId={activeDoc?.id}
           insights={activeInsights}
@@ -439,7 +447,6 @@ export default function ValidationDashboardLayout({ sessionId, onStepChange }) {
         />
       </div>
 
-      {/* Real-time server validated aggregates status board footer */}
       <ValidationSummaryFooter
         approvedCount={batchStats.approvedCount}
         totalCount={batchStats.totalCount}

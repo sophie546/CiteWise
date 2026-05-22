@@ -6,7 +6,7 @@ import ExportDraftDropdown from "./ExportDraftDropdown";
 
 export default function SynthesisDraftModule({ sessionId, onStepChange }) {
   const [approvedDocuments, setApprovedDocuments] = useState([]);
-  const [loading, setLoading] = useState(true); // Add loading state
+  const [loading, setLoading] = useState(true);
   const [generationStatus, setGenerationStatus] = useState("idle");
   const [generationProgress, setGenerationProgress] = useState(0);
   const [statusText, setStatusText] = useState("Ready to Generate");
@@ -15,28 +15,74 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
   const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
-  // Fetch approved documents from Module 2
+  // Fetch approved documents using sessionId
   useEffect(() => {
     if (!sessionId) {
       setLoading(false);
       return;
     }
     
+    // First try session-specific localStorage
+    const storageKey = `citewise_approved_docs_${sessionId}`;
+    const storedApproved = localStorage.getItem(storageKey);
+    
+    console.log("Session ID:", sessionId);
+    console.log("Stored approved docs from localStorage:", storedApproved);
+    
+    if (storedApproved) {
+      try {
+        const approved = JSON.parse(storedApproved);
+        console.log("Parsed approved documents:", approved);
+        setApprovedDocuments(approved);
+        setLoading(false);
+        return;
+      } catch (err) {
+        console.error("Error parsing stored approved docs:", err);
+      }
+    }
+    
+    // Fallback to API with session isolation
     const fetchApprovedDocs = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`/api/v1/documents/session/${sessionId}`);
+        const response = await fetch(`/api/v1/documents/session/${sessionId}`, {
+          headers: {
+            'X-Session-Id': sessionId,
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
         const data = await response.json();
-        const approved = data.filter(doc => doc.status === "complete" || doc.approved === true);
+        console.log("API response data:", data);
+        
+        // Filter documents that are approved (once backend has approved column)
+        // For now, show all complete documents as a fallback
+        const approved = data.filter(doc => doc.approved === true);
         setApprovedDocuments(approved);
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching approved documents:", err);
         setApprovedDocuments([]);
       } finally {
         setLoading(false);
       }
     };
+    
     fetchApprovedDocs();
+  }, [sessionId]);
+
+  // Clean up localStorage when component unmounts (optional)
+  useEffect(() => {
+    return () => {
+      // Optional: Clear session-specific storage when leaving
+      // Uncomment if you want to clear when navigating back
+      // if (sessionId) {
+      //   const storageKey = `citewise_approved_docs_${sessionId}`;
+      //   localStorage.removeItem(storageKey);
+      // }
+    };
   }, [sessionId]);
 
   const startSynthesis = () => {
@@ -112,7 +158,6 @@ Moreover, the integration of structured document parsing algorithms ensures that
 
   return (
     <div style={styles.container}>
-      {/* Success Toast */}
       {showSuccessToast && (
         <div style={styles.toastOverlay}>
           <div style={styles.toastContainer}>
@@ -128,7 +173,6 @@ Moreover, the integration of structured document parsing algorithms ensures that
       )}
 
       <div style={styles.gridContainer}>
-        {/* Left Column */}
         <div style={styles.leftColumn}>
           <SynthesisControlPanel
             generationStatus={generationStatus}
@@ -142,7 +186,6 @@ Moreover, the integration of structured document parsing algorithms ensures that
           <ApprovedSourceList documents={approvedDocuments} loading={loading} />
         </div>
 
-        {/* Right Column */}
         <div style={styles.rightColumn}>
           <div style={styles.rightPanel}>
             <div style={styles.rightPanelHeader}>
