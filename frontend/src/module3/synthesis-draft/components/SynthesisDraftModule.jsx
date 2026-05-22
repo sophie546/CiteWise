@@ -85,37 +85,64 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
     };
   }, [sessionId]);
 
-  const startSynthesis = () => {
+  const startSynthesis = async () => {
     if (approvedDocuments.length === 0) return;
-    
+    if (!sessionId) {
+      setStatusText("No session ID — import a workspace first.");
+      return;
+    }
+
     setGenerationStatus("generating");
     setStatusText("Synthesizing... Please wait");
-    
+    setGenerationProgress(10);
+
+    // Cosmetic progress while the request is in flight
     const steps = [
-      { progress: 10, text: "Analyzing approved documents..." },
       { progress: 25, text: "Extracting key themes..." },
       { progress: 45, text: "Mapping semantic connections..." },
-      { progress: 60, text: "Synthesizing literature review..." },
-      { progress: 80, text: "Generating APA citations..." },
-      { progress: 100, text: "Synthesis Complete!" },
+      { progress: 65, text: "Synthesizing literature review..." },
+      { progress: 85, text: "Generating APA citations..." },
     ];
-
-    let currentStepIdx = 0;
+    let stepIdx = 0;
     const interval = setInterval(() => {
-      if (currentStepIdx < steps.length) {
-        const current = steps[currentStepIdx];
-        setGenerationProgress(current.progress);
-        setStatusText(current.text);
-        currentStepIdx++;
-      } else {
-        clearInterval(interval);
-        setGenerationStatus("complete");
-        setGeneratedContent(getDefaultContent());
-        setReferences(getDefaultReferences());
-        setShowSuccessToast(true);
-        setTimeout(() => setShowSuccessToast(false), 2200);
+      if (stepIdx < steps.length) {
+        setGenerationProgress(steps[stepIdx].progress);
+        setStatusText(steps[stepIdx].text);
+        stepIdx++;
       }
     }, 1200);
+
+    try {
+      const response = await fetch(
+        `/api/v1/synthesis/generate?sessionId=${encodeURIComponent(sessionId)}`,
+        { method: "POST" }
+      );
+      const payload = await response.json().catch(() => null);
+      clearInterval(interval);
+
+      if (!response.ok || !payload || payload.success === false) {
+        throw new Error(payload?.message || `Synthesis failed (HTTP ${response.status})`);
+      }
+
+      const refsArray = (payload.referencesText || "")
+        .split("\n")
+        .map((ref) => ref.trim())
+        .filter((ref) => ref.length > 0);
+
+      setGenerationProgress(100);
+      setStatusText("Synthesis Complete!");
+      setGenerationStatus("complete");
+      setGeneratedContent(payload.contentText || "");
+      setReferences(refsArray);
+      setShowSuccessToast(true);
+      setTimeout(() => setShowSuccessToast(false), 2200);
+    } catch (err) {
+      clearInterval(interval);
+      console.error("Synthesis error:", err);
+      setGenerationStatus("idle");
+      setGenerationProgress(0);
+      setStatusText(err.message || "Synthesis failed");
+    }
   };
 
   const resetGeneration = () => {
@@ -143,18 +170,6 @@ export default function SynthesisDraftModule({ sessionId, onStepChange }) {
     const fullText = `${generatedContent}\n\nReferences\n${references.join("\n")}`;
     navigator.clipboard.writeText(fullText);
   };
-
-  const getDefaultContent = () => `1. Introduction
-
-In recent years, the intersection of advanced artificial intelligence and research synthesis has emerged as a cornerstone of modern digital scholarship (Vaswani et al., 2017). Standard methods of literature evaluation often suffer from cognitive overload, forcing researchers to manually reconcile disparate data sources, statistical tables, and thematic findings. By utilizing semantic embedding matrices and large language models (LLMs), automated tools can now systematically map connections across high-density research corpora (Smith & Jones, 2022).
-
-Moreover, the integration of structured document parsing algorithms ensures that semantic retrieval remains contextually grounded, drastically reducing hallucination rates while preserving the academic integrity of the original source materials (Brown, 2023). This synthesis demonstrates that automated validation pipelines not only accelerate the initial review phase but also enhance the reliability of subsequent literature reviews by establishing rigorous verification metrics.`;
-
-  const getDefaultReferences = () => [
-    "Brown, A. (2023). Contextual Grounding and Hallucination Mitigation in Document Parsing. Journal of Semantic Architecture, 14(2), 112-128.",
-    "Smith, J., & Jones, M. (2022). Mapping High-Density Corpora with Transformer Embeddings. Academic AI Quarterly, 8(4), 245-261.",
-    "Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., ... & Polosukhin, I. (2017). Attention is all you need. Advances in Neural Information Processing Systems, 30.",
-  ];
 
   return (
     <div style={styles.container}>

@@ -28,19 +28,11 @@ public class GeneratedDraft {
     @Column(name = "content_text", columnDefinition = "LONGTEXT")
     private String contentText;
 
+    @Column(name = "references_text", columnDefinition = "TEXT")
+    private String referencesText;
+
     @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    /**
-     * Saves the current draft to the database
-     * @return true if save was successful
-     */
-    public Boolean saveToDatabase() {
-        try {
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
 }

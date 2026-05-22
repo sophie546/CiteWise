@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
@@ -23,14 +24,17 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.citewise.backend.dto.CatalystPayload;
 import com.citewise.backend.dto.DocumentUploadResponse;
 import com.citewise.backend.dto.DocumentUploadResult;
 import com.citewise.backend.dto.NlpEvaluationRequest;
 import com.citewise.backend.entity.DocumentInsight;
+import com.citewise.backend.entity.SemanticBaseline;
 import com.citewise.backend.entity.UploadedDocument;
 import com.citewise.backend.repository.DocumentInsightRepository;
+import com.citewise.backend.repository.SemanticBaselineRepository;
 import com.citewise.backend.repository.UploadedDocumentRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class DocumentUploadService {
@@ -39,23 +43,24 @@ public class DocumentUploadService {
     private final long maxFileSizeBytes;
     private final UploadedDocumentRepository uploadedDocumentRepository;
     private final DocumentInsightRepository documentInsightRepository;
-    private final CatalystClient catalystClient;
+    private final SemanticBaselineRepository semanticBaselineRepository;
     private final NLPMicroserviceClient nlpMicroserviceClient;
     private final RubricScoringEngine rubricScoringEngine;
     private final Executor aiScoringExecutor;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public DocumentUploadService(
             @Value("${rrl.max-file-size-mb:20}") int maxFileSizeMb,
             UploadedDocumentRepository uploadedDocumentRepository,
             DocumentInsightRepository documentInsightRepository,
-            CatalystClient catalystClient,
+            SemanticBaselineRepository semanticBaselineRepository,
             NLPMicroserviceClient nlpMicroserviceClient,
             RubricScoringEngine rubricScoringEngine,
             @Qualifier("aiScoringExecutor") Executor aiScoringExecutor) {
         this.maxFileSizeBytes = maxFileSizeMb * 1024L * 1024L;
         this.uploadedDocumentRepository = uploadedDocumentRepository;
         this.documentInsightRepository = documentInsightRepository;
-        this.catalystClient = catalystClient;
+        this.semanticBaselineRepository = semanticBaselineRepository;
         this.nlpMicroserviceClient = nlpMicroserviceClient;
         this.rubricScoringEngine = rubricScoringEngine;
         this.aiScoringExecutor = aiScoringExecutor;
@@ -140,13 +145,21 @@ public class DocumentUploadService {
         CompletableFuture.runAsync(() -> {
             try {
                 logger.info("Starting AI scoring pipeline for document ID: {}", document.getId());
-                CatalystPayload payload = catalystClient.fetchCatalystData(document.getSessionId());
-                
+
+                SemanticBaseline baseline = loadBaseline(document.getSessionId());
+                if (baseline == null) {
+                    logger.warn(
+                        "No research baseline found for session {} — skipping AI scoring for document {}. "
+                        + "Import a CATalyst workspace for this session first.",
+                        document.getSessionId(), document.getId());
+                    return;
+                }
+
                 NlpEvaluationRequest request = new NlpEvaluationRequest(
                     document.getParsedText(),
-                    payload != null ? payload.title() : "",
-                    payload != null ? payload.rationale() : "",
-                    payload != null && payload.gaps() != null ? String.join("; ", payload.gaps()) : ""
+                    baseline.getProjectTitle() != null ? baseline.getProjectTitle() : "",
+                    baseline.getRationale() != null ? baseline.getRationale() : "",
+                    parseGapsToString(baseline.getResearchGaps())
                 );
 
                 logger.info("Calling n8n for document ID: {}", document.getId());
@@ -181,6 +194,47 @@ public class DocumentUploadService {
                 logger.error("AI scoring pipeline failed for document {}: {}", document.getId(), e.getMessage(), e);
             }
         }, aiScoringExecutor);
+    }
+
+    private SemanticBaseline loadBaseline(String sessionId) {
+        if (sessionId == null || sessionId.isBlank()) {
+            return null;
+        }
+        try {
+            return semanticBaselineRepository
+                .findFirstBySessionIdOrderByCreatedAtDesc(UUID.fromString(sessionId))
+                .orElse(null);
+        } catch (IllegalArgumentException ex) {
+            logger.warn("Session ID '{}' is not a valid UUID", sessionId);
+            return null;
+        }
+    }
+
+    private String parseGapsToString(String researchGapsJson) {
+        if (researchGapsJson == null || researchGapsJson.isBlank()) {
+            return "";
+        }
+        try {
+            JsonNode node = objectMapper.readTree(researchGapsJson);
+            if (node.isArray()) {
+                List<String> gaps = new ArrayList<>();
+                for (JsonNode gap : node) {
+                    if (gap.isTextual()) {
+                        gaps.add(gap.asText());
+                    } else if (gap.isObject()) {
+                        String text = gap.path("gap").asText(
+                            gap.path("description").asText(gap.path("text").asText("")));
+                        if (!text.isBlank()) {
+                            gaps.add(text);
+                        }
+                    }
+                }
+                return String.join("; ", gaps);
+            }
+            return researchGapsJson;
+        } catch (Exception ex) {
+            return researchGapsJson;
+        }
     }
 
     private boolean isPdf(MultipartFile file, String fileName) {
