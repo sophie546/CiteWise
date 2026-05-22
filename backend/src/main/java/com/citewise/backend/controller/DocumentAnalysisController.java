@@ -38,7 +38,7 @@ public class DocumentAnalysisController {
 
     @GetMapping("/{id}/insights")
     @Transactional
-    public ResponseEntity<DocumentInsight> getDocumentInsights(@PathVariable Long id) {
+    public ResponseEntity<DocumentInsight> getDocumentInsights(@PathVariable("id") Long id) {
         return documentInsightRepository.findByDocumentIdWithExcerpts(id)
                 .map(insight -> {
                     if (N8nResponseValidator.isPlaceholderInsight(insight)) {
@@ -55,12 +55,21 @@ public class DocumentAnalysisController {
      * Used by the frontend sidebar to display uploaded RRLs with relevancy scores.
      */
     @GetMapping("/session/{sessionId}")
-    public ResponseEntity<List<DocumentSummaryDto>> getSessionDocuments(@PathVariable String sessionId) {
+    public ResponseEntity<List<DocumentSummaryDto>> getSessionDocuments(@PathVariable("sessionId") String sessionId) {
+        System.out.println("=== SESSION ID: '" + sessionId + "'");
+        
         List<UploadedDocument> documents = uploadedDocumentRepository.findBySessionId(sessionId);
+        
+        System.out.println("=== FOUND " + documents.size() + " documents for this session");
+        for (UploadedDocument doc : documents) {
+            System.out.println("  - " + doc.getFileName() + " | Session: '" + doc.getSessionId() + "'");
+        }
+        
         List<DocumentSummaryDto> summaries = new ArrayList<>();
 
         for (UploadedDocument doc : documents) {
-            Optional<DocumentInsight> insightOpt = documentInsightRepository.findByDocumentId(doc.getId());
+            // FIXED: Changed from findByDocumentId to findByDocumentIdWithExcerpts
+            Optional<DocumentInsight> insightOpt = documentInsightRepository.findByDocumentIdWithExcerpts(doc.getId());
 
             if (insightOpt.isPresent()) {
                 DocumentInsight insight = insightOpt.get();
@@ -86,7 +95,7 @@ public class DocumentAnalysisController {
     }
 
     @PostMapping("/{id}/assess")
-    public ResponseEntity<ApiResponse<String>> assessDocument(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<String>> assessDocument(@PathVariable("id") Long id) {
         UploadedDocument document = uploadedDocumentRepository.findById(id).orElse(null);
         if (document == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -105,12 +114,13 @@ public class DocumentAnalysisController {
 
     @DeleteMapping("/{id}")
     @Transactional
-    public ResponseEntity<Void> deleteDocument(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteDocument(@PathVariable("id") Long id) {
         if (!uploadedDocumentRepository.existsById(id)) {
             return ResponseEntity.notFound().build();
         }
         
-        documentInsightRepository.findByDocumentId(id).ifPresent(documentInsightRepository::delete);
+        // FIXED: Changed from findByDocumentId to findByDocumentIdWithExcerpts
+        documentInsightRepository.findByDocumentIdWithExcerpts(id).ifPresent(documentInsightRepository::delete);
         
         uploadedDocumentRepository.deleteById(id);
         return ResponseEntity.noContent().build();
