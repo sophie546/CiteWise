@@ -168,18 +168,73 @@ public class DocumentUploadService {
                 if (rawResponse != null) {
                     DocumentInsight insight = rubricScoringEngine.parseAIResponse(rawResponse, document.getId());
                     if (insight != null) {
+                        // If n8n provided an explicit overall score, prefer it over any recomputed average.
+                        try {
+                            JsonNode rootNode = objectMapper.readTree(rawResponse);
+                            // look for overall in common names and nested containers
+                            Double providedOverall = null;
+                            for (String name : new String[]{"overall", "overallScore", "overall_score"}) {
+                                JsonNode n = rootNode.path(name);
+                                if (!n.isMissingNode() && !n.isNull() && (n.isNumber() || n.isTextual())) {
+                                    try {
+                                        double v = n.isNumber() ? n.asDouble() : Double.parseDouble(n.asText());
+                                        providedOverall = v;
+                                        break;
+                                    } catch (NumberFormatException ex) {
+                                        // ignore and continue
+                                    }
+                                }
+                            }
+                            if (providedOverall == null) {
+                                for (String container : new String[]{"scores", "meta", "analysis", "result", "data"}) {
+                                    JsonNode containerNode = rootNode.path(container);
+                                    if (containerNode != null && containerNode.isObject()) {
+                                        for (String name : new String[]{"overall", "overallScore", "overall_score"}) {
+                                            JsonNode n = containerNode.path(name);
+                                            if (!n.isMissingNode() && !n.isNull() && (n.isNumber() || n.isTextual())) {
+                                                try {
+                                                    double v = n.isNumber() ? n.asDouble() : Double.parseDouble(n.asText());
+                                                    providedOverall = v;
+                                                    break;
+                                                } catch (NumberFormatException ex) {
+                                                    // ignore
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if (providedOverall != null) break;
+                                }
+                            }
+
+                            if (providedOverall != null) {
+                                // normalize 0-1 to 0-100
+                                double normalized = providedOverall;
+                                if (normalized > 0 && normalized <= 1.0) normalized = normalized * 100.0;
+                                if (Double.isNaN(normalized) || normalized < 0) normalized = 0.0;
+                                if (normalized > 100) normalized = 100.0;
+                                insight.setOverallScore(normalized);
+                                // avoid exposing the previously computed unweighted average
+                                insight.setAverageOverallScore(null);
+                            }
+                        } catch (Exception ex) {
+                            logger.debug("Could not extract provided overall score from n8n response", ex);
+                        }
                         documentInsightRepository.findByDocumentId(document.getId())
                             .ifPresent(documentInsightRepository::delete);
                         documentInsightRepository.save(insight);
                         int excerptCount = insight.getEvidenceExcerpts() != null
                             ? insight.getEvidenceExcerpts().size() : 0;
                         logger.info(
-                            "Saved n8n insights for document {} — gap={}, methodology={}, theoretical={}, citation={}, excerpts={}",
+                            "Saved n8n insights for document {} — gap={}, methodology={}, theoretical={}, citation={}, overall={}, recommendation={}, confidence={}, relevance={}, excerpts={}",
                             document.getId(),
                             insight.getGapAlignmentScore(),
                             insight.getMethodologyScore(),
                             insight.getTheoreticalScore(),
                             insight.getCitationScore(),
+                            insight.getOverallScore(),
+                            insight.getRecommendationStatus(),
+                            insight.getConfidenceLevel(),
+                            insight.getRelevanceLevel(),
                             excerptCount
                         );
                     }

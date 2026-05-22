@@ -22,7 +22,7 @@ public class NLPMicroserviceClient {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Value("${n8n.webhook.url:https://citewise-n8n-1.onrender.com/webhook/citewise-evaluator}")
+    @Value("${n8n.webhook.url:https://citewise-n8n-1.onrender.com/webhook/semantic_scoring}")
     private String webhookUrl;
     
     public NLPMicroserviceClient(RestTemplate restTemplate) {

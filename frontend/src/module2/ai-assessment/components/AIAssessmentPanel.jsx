@@ -105,14 +105,28 @@ const AIAssessmentPanel = ({
     if (!resolvedInsights) return null;
     return {
       excerpts: Array.isArray(resolvedInsights.evidenceExcerpts)
-        ? resolvedInsights.evidenceExcerpts
+        ? resolvedInsights.evidenceExcerpts.map((e) => ({
+            criterion: e.criterion || null,
+            quoteText: e.quoteText || e.quote || e.text || "",
+            pageNumber: e.pageNumber ?? e.page ?? null,
+            relevanceLevel: e.relevanceLevel || e.relevance || null,
+            evidenceType: e.evidenceType || e.type || null,
+            displayOrder: e.displayOrder ?? null,
+          }))
         : [],
       scores: {
-        gapAlignment: resolvedInsights.gapAlignmentScore ?? 0,
-        methodology: resolvedInsights.methodologyScore ?? 0,
-        theoretical: resolvedInsights.theoreticalScore ?? 0,
-        citation: resolvedInsights.citationScore ?? 0,
+        gapAlignment: resolvedInsights.gapAlignmentScore ?? resolvedInsights.gapAlignment ?? 0,
+        methodology: resolvedInsights.methodologyScore ?? resolvedInsights.methodology ?? 0,
+        theoretical: resolvedInsights.theoreticalScore ?? resolvedInsights.theory ?? 0,
+        citation: resolvedInsights.citationScore ?? resolvedInsights.citationQuality ?? 0,
+        overall: resolvedInsights.overallScore ?? resolvedInsights.overall ?? resolvedInsights.averageOverallScore ?? null,
       },
+      recommendationStatus: resolvedInsights.recommendationStatus || resolvedInsights.recommendation || null,
+      confidenceLevel: resolvedInsights.confidenceLevel || null,
+      relevanceLevel: resolvedInsights.relevanceLevel || null,
+      mismatchFlags: Array.isArray(resolvedInsights.mismatchFlags) ? resolvedInsights.mismatchFlags : [],
+      weaknessFlags: Array.isArray(resolvedInsights.weaknessFlags) ? resolvedInsights.weaknessFlags : [],
+      validationFlags: Array.isArray(resolvedInsights.validationFlags) ? resolvedInsights.validationFlags : [],
     };
   };
 
@@ -378,7 +392,15 @@ const AIAssessmentPanel = ({
       <div style={{ padding: '0px 20px 20px 20px' }}>
         <EvidenceExcerptList excerpts={mappedData.excerpts} />
         <div style={{ height: '35px' }} />
-        <SemanticScoreDashboard scores={mappedData.scores} />
+        <SemanticScoreDashboard
+          scores={mappedData.scores}
+          recommendationStatus={mappedData.recommendationStatus}
+          confidenceLevel={mappedData.confidenceLevel}
+          relevanceLevel={mappedData.relevanceLevel}
+          mismatchFlags={mappedData.mismatchFlags}
+          weaknessFlags={mappedData.weaknessFlags}
+          validationFlags={mappedData.validationFlags}
+        />
       </div>
     </div>
   );

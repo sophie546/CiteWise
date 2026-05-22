@@ -38,8 +38,9 @@ public class RAGSynthesisService {
             log.warn("No semantic baseline found for session {}", sessionId);
         }
 
-        List<UploadedDocument> allDocs = documentRepository.findBySessionId(sessionId.toString());
-        List<UploadedDocument> docsWithText = allDocs.stream()
+        // Only include user-approved documents
+        List<UploadedDocument> approvedDocs = documentRepository.findBySessionIdAndApprovedTrue(sessionId.toString());
+        List<UploadedDocument> docsWithText = approvedDocs.stream()
             .filter(d -> d.getParsedText() != null && !d.getParsedText().isBlank())
             .toList();
 
@@ -47,7 +48,7 @@ public class RAGSynthesisService {
             return SynthesisResponseDto.builder()
                 .sessionId(sessionId)
                 .success(false)
-                .message("No documents with parsed text found for session " + sessionId)
+                .message("Approve at least one document before generating an introduction.")
                 .build();
         }
 
@@ -55,8 +56,31 @@ public class RAGSynthesisService {
 
         String contentText = n8nResponse.path("contentText").asText("");
         String referencesText = n8nResponse.path("referencesText").asText("");
-        boolean success = n8nResponse.path("success").asBoolean(true);
-        String message = n8nResponse.path("message").asText("Draft generated successfully");
+        boolean success = n8nResponse.path("success").asBoolean(false);
+        String message = n8nResponse.path("message").asText("");
+
+        String validationStatus = n8nResponse.path("validationStatus").asText("");
+        List<String> validationFlags = new ArrayList<>();
+        if (n8nResponse.has("validationFlags") && n8nResponse.get("validationFlags").isArray()) {
+            n8nResponse.get("validationFlags").forEach(n -> validationFlags.add(n.asText()));
+        }
+
+        // On validation failure, do not save as completed draft
+        if (!success || (validationStatus != null && !validationStatus.isBlank() && !"PASSED".equalsIgnoreCase(validationStatus))) {
+            log.info("Synthesis failed or validation failed: success={}, validationStatus={}", success, validationStatus);
+            SynthesisResponseDto resp = SynthesisResponseDto.builder()
+                .sessionId(sessionId)
+                .success(false)
+                .status(validationStatus == null || validationStatus.isBlank() ? "VALIDATION_FAILED" : validationStatus)
+                .message(message == null || message.isBlank() ? "Synthesis failed or validation failed" : message)
+                .validationFlags(validationFlags)
+                .sectionsPreview(null)
+                .metrics(null)
+                .retryRecommended(n8nResponse.path("retryRecommended").asBoolean(false))
+                .errorMessage(n8nResponse.path("errorMessage").asText(null))
+                .build();
+            return resp;
+        }
 
         // Replace any existing draft for this session
         draftRepository.deleteBySessionId(sessionId);
@@ -65,19 +89,36 @@ public class RAGSynthesisService {
             .sessionId(sessionId)
             .contentText(contentText)
             .referencesText(referencesText)
+            .backgroundText(n8nResponse.path("sections").path("background").asText(null))
+            .rationaleText(n8nResponse.path("sections").path("rationale").asText(null))
+            .gapText(n8nResponse.path("sections").path("gap").asText(null))
+            .validationStatus(n8nResponse.path("validationStatus").asText(null))
+            .validationFlagsJson(n8nResponse.has("validationFlags") ? n8nResponse.path("validationFlags").toString() : "[]")
+            .unsupportedClaimFlagsJson(n8nResponse.has("unsupportedClaimFlags") ? n8nResponse.path("unsupportedClaimFlags").toString() : "[]")
+            .metricsJson(n8nResponse.has("metrics") ? n8nResponse.path("metrics").toString() : "{}")
+            .citationsUsedJson(n8nResponse.has("citationsUsed") ? n8nResponse.path("citationsUsed").toString() : "[]")
             .build();
 
         draft = draftRepository.save(draft);
 
-        return SynthesisResponseDto.builder()
+        // Build response
+        SynthesisResponseDto resp = SynthesisResponseDto.builder()
             .draftId(draft.getId())
             .sessionId(sessionId)
             .contentText(contentText)
             .referencesText(referencesText)
+            .sections(n8nResponse.has("sections") ? n8nResponse.path("sections") : null)
+            .citationsUsed(n8nResponse.has("citationsUsed") ? objectNodeToList(n8nResponse.path("citationsUsed")) : List.of())
+            .validationStatus(draft.getValidationStatus())
+            .validationFlags(validationFlags)
+            .metrics(n8nResponse.has("metrics") ? n8nResponse.path("metrics") : null)
             .createdAt(draft.getCreatedAt())
-            .success(success)
+            .success(true)
             .message(message)
             .build();
+
+        log.info("Saved synthesized draft {} for session {} (approvedDocs={})", draft.getId(), sessionId, docsWithText.size());
+        return resp;
     }
 
     public ResponseEntity<byte[]> exportDraft(UUID draftId, String format) {
@@ -97,5 +138,19 @@ public class RAGSynthesisService {
         headers.setContentDispositionFormData("attachment", "draft_" + draftId + "." + format.toLowerCase());
 
         return ResponseEntity.ok().headers(headers).body(fullContent.getBytes());
+    }
+
+    private List<String> objectNodeToList(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull()) {
+            return List.of();
+        }
+        List<String> out = new ArrayList<>();
+        if (node.isArray()) {
+            node.forEach(n -> out.add(n.isTextual() ? n.asText() : n.toString()));
+            return out;
+        }
+        // single object or value
+        out.add(node.isTextual() ? node.asText() : node.toString());
+        return out;
     }
 }

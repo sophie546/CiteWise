@@ -25,6 +25,9 @@ public class UploadedDocument {
     @Column(columnDefinition = "TEXT")
     private String parsedText;
 
+    @Column(name = "approved", nullable = false, columnDefinition = "boolean default false")
+    private boolean approved = false;
+
     public UploadedDocument() {}
 
     public Long getId() { return id; }
@@ -50,4 +53,7 @@ public class UploadedDocument {
 
     public String getParsedText() { return parsedText; }
     public void setParsedText(String parsedText) { this.parsedText = parsedText; }
+
+    public boolean isApproved() { return approved; }
+    public void setApproved(boolean approved) { this.approved = approved; }
 }

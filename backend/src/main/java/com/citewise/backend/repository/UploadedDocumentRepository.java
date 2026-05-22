@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface UploadedDocumentRepository extends JpaRepository<UploadedDocument, Long> {
     List<UploadedDocument> findBySessionId(String sessionId);
+    List<UploadedDocument> findBySessionIdAndApprovedTrue(String sessionId);
 }
