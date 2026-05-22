@@ -3,6 +3,10 @@ package com.citewise.backend.controller;
 import com.citewise.backend.dto.DocumentSummaryDto;
 import com.citewise.backend.dto.ApiResponse;
 import com.citewise.backend.entity.DocumentInsight;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
+import com.citewise.backend.dto.DocumentInsightDto;
+import com.citewise.backend.dto.DocumentInsightDto.EvidenceExcerptDto;
 import com.citewise.backend.entity.UploadedDocument;
 import com.citewise.backend.repository.DocumentInsightRepository;
 import com.citewise.backend.repository.UploadedDocumentRepository;
@@ -38,14 +42,78 @@ public class DocumentAnalysisController {
 
     @GetMapping("/{id}/insights")
     @Transactional
-    public ResponseEntity<DocumentInsight> getDocumentInsights(@PathVariable("id") Long id) {
+    public ResponseEntity<DocumentInsightDto> getDocumentInsights(@PathVariable("id") Long id) {
         return documentInsightRepository.findByDocumentIdWithExcerpts(id)
                 .map(insight -> {
                     if (N8nResponseValidator.isPlaceholderInsight(insight)) {
                         documentInsightRepository.delete(insight);
-                        return ResponseEntity.notFound().<DocumentInsight>build();
+                        return ResponseEntity.notFound().<DocumentInsightDto>build();
                     }
-                    return ResponseEntity.ok(insight);
+
+                    DocumentInsightDto dto = new DocumentInsightDto();
+                    dto.setDocumentId(insight.getDocumentId());
+                    dto.setGapAlignmentScore(insight.getGapAlignmentScore());
+                    dto.setMethodologyScore(insight.getMethodologyScore());
+                    dto.setTheoreticalScore(insight.getTheoreticalScore());
+                    dto.setCitationScore(insight.getCitationScore());
+                    dto.setOverallScore(insight.getOverallScore() != null ? insight.getOverallScore() : insight.getAverageOverallScore());
+                    DocumentInsightDto.Scores s = new DocumentInsightDto.Scores();
+                    s.gapAlignment = dto.getGapAlignmentScore();
+                    s.methodology = dto.getMethodologyScore();
+                    s.theory = dto.getTheoreticalScore();
+                    s.citationQuality = dto.getCitationScore();
+                    s.overall = dto.getOverallScore();
+                    dto.setScores(s);
+
+                    dto.setRecommendationStatus(insight.getRecommendationStatus());
+                    dto.setConfidenceLevel(insight.getConfidenceLevel());
+                    dto.setRelevanceLevel(insight.getRelevanceLevel());
+
+                    // Debug logging: ensure these fields are present before returning
+                    System.out.println("Returning insight for doc " + insight.getDocumentId() + ": recommendation=" + insight.getRecommendationStatus()
+                        + ", confidence=" + insight.getConfidenceLevel() + ", relevance=" + insight.getRelevanceLevel() + ", overall=" + insight.getOverallScore());
+                    try {
+                        ObjectMapper mapper = new ObjectMapper();
+                        String jsonOut = mapper.writeValueAsString(dto);
+                        System.out.println("Outgoing DocumentInsightDto JSON: " + jsonOut);
+                    } catch (Exception e) {
+                        System.out.println("Failed to serialize DTO for logging: " + e.getMessage());
+                    }
+
+                    // set filename if available
+                    uploadedDocumentRepository.findById(insight.getDocumentId()).ifPresent(u -> dto.setFilename(u.getFileName()));
+
+                    // flags JSON -> arrays
+                    try {
+                        ObjectMapper mapper = new ObjectMapper();
+                        List<String> mismatch = mapper.readValue(insight.getMismatchFlagsJson() == null ? "[]" : insight.getMismatchFlagsJson(), mapper.getTypeFactory().constructCollectionType(List.class, String.class));
+                        List<String> weakness = mapper.readValue(insight.getWeaknessFlagsJson() == null ? "[]" : insight.getWeaknessFlagsJson(), mapper.getTypeFactory().constructCollectionType(List.class, String.class));
+                        List<String> validation = mapper.readValue(insight.getValidationFlagsJson() == null ? "[]" : insight.getValidationFlagsJson(), mapper.getTypeFactory().constructCollectionType(List.class, String.class));
+                        dto.setMismatchFlags(mismatch);
+                        dto.setWeaknessFlags(weakness);
+                        dto.setValidationFlags(validation);
+                    } catch (Exception e) {
+                        dto.setMismatchFlags(List.of());
+                        dto.setWeaknessFlags(List.of());
+                        dto.setValidationFlags(List.of());
+                    }
+
+                    if (insight.getEvidenceExcerpts() != null) {
+                        List<EvidenceExcerptDto> exDtos = new java.util.ArrayList<>();
+                        for (var ex : insight.getEvidenceExcerpts()) {
+                            EvidenceExcerptDto ed = new EvidenceExcerptDto();
+                            ed.criterion = ex.getCriterion();
+                            ed.quoteText = ex.getQuoteText();
+                            ed.pageNumber = ex.getPageNumber();
+                            ed.relevanceLevel = ex.getRelevanceLevel();
+                            ed.evidenceType = ex.getEvidenceType();
+                            ed.displayOrder = ex.getDisplayOrder();
+                            exDtos.add(ed);
+                        }
+                        dto.setEvidenceExcerpts(exDtos);
+                    }
+
+                    return ResponseEntity.ok(dto);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }

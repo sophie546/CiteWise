@@ -57,6 +57,9 @@ export default function ValidationDashboardLayout({ sessionId: propSessionId, on
     const previousById = new Map((previous || []).map((doc) => [doc.id, doc]));
     return items.map((item) => {
       const prev = previousById.get(item.id);
+      // Prefer a backend-provided overallScore if present (ensures weighted score used),
+      // otherwise fall back to legacy relevancyScore field.
+      const overallFromInsight = item.overallScore ?? (item.insight && item.insight.overallScore) ?? null;
       return {
         id: item.id,
         name: item.fileName || "Untitled.pdf",
@@ -64,7 +67,7 @@ export default function ValidationDashboardLayout({ sessionId: propSessionId, on
         pages: prev?.pages ?? "-",
         status: mapStatus(item.status),
         approved: prev?.approved ?? false,
-        relevancyScore: item.relevancyScore ?? null,
+        relevancyScore: overallFromInsight ?? item.relevancyScore ?? null,
       };
     });
   };

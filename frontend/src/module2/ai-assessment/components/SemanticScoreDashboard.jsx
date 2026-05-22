@@ -72,7 +72,7 @@ const ScoreBar = ({ label, value }) => {
   );
 };
 
-const SemanticScoreDashboard = ({ scores = {} }) => {
+const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceLevel, relevanceLevel, mismatchFlags = [], weaknessFlags = [], validationFlags = [] }) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
       {/* Section Header (using second file's icon and style) */}
@@ -108,6 +108,58 @@ const SemanticScoreDashboard = ({ scores = {} }) => {
         {METRICS.map(({ label, key }) => (
           <ScoreBar key={key} label={label} value={scores[key]} />
         ))}
+      </div>
+
+      {/* Overall + recommendation area */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: '36px', fontWeight: 800, color: '#D98A21' }}>
+            {scores.overall !== null && scores.overall !== undefined ? `${Math.round(scores.overall)}%` : '--'}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '12px', color: '#8a8278' }}>Overall Score</div>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '6px', alignItems: 'center' }}>
+              <span style={{ fontFamily: "'Poppins', sans-serif", fontSize: '13px', fontWeight: 700, color: '#f0ece6' }}>{recommendationStatus || 'No recommendation'}</span>
+              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: '#8a8278' }}>Confidence: <strong style={{ color: '#D98A21', marginLeft: 6 }}>{confidenceLevel || 'Unknown'}</strong></span>
+              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: '#8a8278' }}>Relevance: <strong style={{ color: '#D98A21', marginLeft: 6 }}>{relevanceLevel || 'Unknown'}</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+          {mismatchFlags && mismatchFlags.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: '340px' }}>
+              <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: '#ff6b6b' }}>Mismatch:</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '96px', overflowY: 'auto', paddingRight: '6px' }}>
+                {mismatchFlags.map((f, idx) => (
+                  <span key={idx} style={{ background: '#221212', color: '#ff6b6b', padding: '4px 8px', borderRadius: '999px', fontSize: '12px', whiteSpace: 'normal', lineHeight: 1.2, border: '1px solid rgba(255,107,107,0.18)' }}>{f}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {weaknessFlags && weaknessFlags.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: '340px' }}>
+              <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: '#ffb86b' }}>Weakness:</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '96px', overflowY: 'auto', paddingRight: '6px' }}>
+                {weaknessFlags.map((f, idx) => (
+                  <span key={idx} style={{ background: '#241a0e', color: '#ffb86b', padding: '4px 8px', borderRadius: '8px', fontSize: '12px', whiteSpace: 'normal', lineHeight: 1.2, border: '1px solid rgba(255,184,107,0.12)' }}>{f}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {validationFlags && validationFlags.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: '340px' }}>
+              <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: '#8acbff' }}>Validation:</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '96px', overflowY: 'auto', paddingRight: '6px' }}>
+                {validationFlags.map((f, idx) => (
+                  <span key={idx} style={{ background: '#0e2330', color: '#8acbff', padding: '4px 8px', borderRadius: '8px', fontSize: '12px', whiteSpace: 'normal', lineHeight: 1.2, border: '1px solid rgba(138,203,255,0.08)' }}>{f}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

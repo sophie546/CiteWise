@@ -22,7 +22,7 @@ public class SynthesisN8nClient {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Value("${n8n.synthesis.webhook.url:http://localhost:5678/webhook/citewise-synthesizer}")
+    @Value("${n8n.synthesis.webhook.url:http://localhost:5678/webhook/citewise-synthesizer-v2}")
     private String synthesisWebhookUrl;
 
     public SynthesisN8nClient(RestTemplate restTemplate) {
@@ -65,16 +65,28 @@ public class SynthesisN8nClient {
             }
             payload.set("baseline", baselineNode);
 
-            // Build approvedDocuments array — use all docs that have parsed text
+            // Build approvedDocuments array — prefer canonical fields required by the v2 workflow
             ArrayNode docsArray = objectMapper.createArrayNode();
             for (UploadedDocument doc : documents) {
+                if (doc == null || doc.getParsedText() == null || doc.getParsedText().isBlank()) continue;
                 ObjectNode docNode = objectMapper.createObjectNode();
-                docNode.put("text", doc.getParsedText());
+                // documentId as string
+                if (doc.getId() != null) docNode.put("documentId", String.valueOf(doc.getId()));
+                docNode.put("filename", doc.getFileName() != null ? doc.getFileName() : "");
+                docNode.put("extracted_text", doc.getParsedText());
+
                 ObjectNode meta = objectMapper.createObjectNode();
-                meta.put("title", doc.getFileName() != null ? doc.getFileName() : "Unknown");
-                meta.put("authors", "");
+                meta.put("author", "");
                 meta.putNull("year");
+                meta.put("title", doc.getFileName() != null ? doc.getFileName() : "");
+                meta.put("journal", "");
+                meta.put("volume", "");
+                meta.put("issue", "");
+                meta.put("pages", "");
                 meta.put("doi", "");
+                meta.put("url", "");
+                meta.put("publisher", "");
+
                 docNode.set("metadata", meta);
                 docsArray.add(docNode);
             }

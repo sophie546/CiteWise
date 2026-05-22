@@ -15,7 +15,7 @@ const getRelevanceDisplay = (level) => {
     : "Unknown";
 };
 
-const ExcerptItem = ({ index, quote, page, relevance }) => {
+const ExcerptItem = ({ index, quote, page, relevance, criterion, evidenceType }) => {
   const relevanceDisplay = getRelevanceDisplay(relevance);
   const color = RELEVANCE_COLORS[relevanceDisplay] || "#8a8278";
 
@@ -56,6 +56,13 @@ const ExcerptItem = ({ index, quote, page, relevance }) => {
 
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
+        {criterion && (
+          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: '#8a8278', marginBottom: 6 }}>
+            {criterion}
+            {evidenceType ? <span style={{ marginLeft: 8, color: '#8a8278' }}>· {evidenceType}</span> : null}
+          </div>
+        )}
+
         <p
           style={{
             fontFamily: "'Poppins', sans-serif",
@@ -168,9 +175,11 @@ const EvidenceExcerptList = ({ excerpts }) => {
   // Map from first file's shape to the display format
   const items = excerpts.map((excerpt, idx) => ({
     id: idx,
-    quote: excerpt.quoteText || "",
-    page: excerpt.pageNumber || "N/A",
-    relevance: excerpt.relevanceLevel || "Unknown",
+    quote: excerpt.quoteText || excerpt.quote || "",
+    page: excerpt.pageNumber || excerpt.page || "N/A",
+    relevance: excerpt.relevanceLevel || excerpt.relevance || "Unknown",
+    criterion: excerpt.criterion || null,
+    evidenceType: excerpt.evidenceType || null,
   }));
 
   return (
@@ -219,6 +228,8 @@ const EvidenceExcerptList = ({ excerpts }) => {
             quote={item.quote}
             page={item.page}
             relevance={item.relevance}
+            criterion={item.criterion}
+            evidenceType={item.evidenceType}
           />
         ))}
       </div>

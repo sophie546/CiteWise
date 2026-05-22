@@ -20,6 +20,10 @@ public class EvidenceExcerpt {
     private Integer pageNumber;
     private String relevanceLevel;
 
+    private String criterion;
+    private String evidenceType;
+    private Integer displayOrder;
+
     public EvidenceExcerpt() {}
 
     public Long getId() { return id; }
@@ -36,4 +40,13 @@ public class EvidenceExcerpt {
 
     public String getRelevanceLevel() { return relevanceLevel; }
     public void setRelevanceLevel(String relevanceLevel) { this.relevanceLevel = relevanceLevel; }
+
+    public String getCriterion() { return criterion; }
+    public void setCriterion(String criterion) { this.criterion = criterion; }
+
+    public String getEvidenceType() { return evidenceType; }
+    public void setEvidenceType(String evidenceType) { this.evidenceType = evidenceType; }
+
+    public Integer getDisplayOrder() { return displayOrder; }
+    public void setDisplayOrder(Integer displayOrder) { this.displayOrder = displayOrder; }
 }
