@@ -1,6 +1,6 @@
 package com.citewise.backend.module3.controller;
 
-import com.citewise.backend.module3.entity.GeneratedDraft;
+import com.citewise.backend.module3.dto.SynthesisResponseDto;
 import com.citewise.backend.module3.service.RAGSynthesisService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,9 +17,9 @@ public class DraftGenerationController {
     private final RAGSynthesisService raqSynthesisService;
 
     @PostMapping("/generate")
-    public ResponseEntity<GeneratedDraft> generateIntroduction(@RequestParam UUID sessionId) {
-        GeneratedDraft draft = raqSynthesisService.orchestrateDrafting(sessionId);
-        return ResponseEntity.ok(draft);
+    public ResponseEntity<SynthesisResponseDto> generateIntroduction(@RequestParam UUID sessionId) {
+        SynthesisResponseDto response = raqSynthesisService.orchestrateDrafting(sessionId);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/export")
