@@ -281,20 +281,65 @@ export default function ValidationDashboardLayout({ sessionId: propSessionId, on
     onStepChange(1);
   };
 
-  const handleProceed = () => {
-    const approvedDocs = documents.filter(doc => doc.approved === true);
-    
-    console.log("Approved documents to pass:", approvedDocs);
-    
-    // Save to session-specific localStorage key
-    const storageKey = `citewise_approved_docs_${resolvedSessionId}`;
-    localStorage.setItem(storageKey, JSON.stringify(approvedDocs));
-    
-    setShowSuccessToast(true);
-    setTimeout(() => {
-      onStepChange(2, resolvedSessionId); // Pass sessionId to Module 3
-    }, 2200);
-  };
+const handleProceed = () => {
+  // Get currently approved documents from current session
+  const currentlyApproved = documents.filter(doc => doc.approved === true);
+  
+  console.log("=== PROCEED TO SYNTHESIS ===");
+  console.log("Currently approved in Module 2:", currentlyApproved.map(d => d.name));
+  
+  const storageKey = `citewise_approved_docs_${resolvedSessionId}`;
+  
+  // Get existing approved documents from localStorage
+  const existingApprovedStr = localStorage.getItem(storageKey);
+  let existingApproved = [];
+  
+  if (existingApprovedStr) {
+    try {
+      existingApproved = JSON.parse(existingApprovedStr);
+      console.log("Existing approved from localStorage:", existingApproved.map(d => d.name || d.fileName));
+    } catch (err) {
+      console.error("Error parsing existing docs:", err);
+    }
+  }
+  
+  // MERGE: Combine existing with newly approved, avoid duplicates by ID and name
+  const mergedMap = new Map();
+  
+  // Add existing documents first
+  existingApproved.forEach(doc => {
+    const key = doc.id || doc.name || doc.fileName;
+    mergedMap.set(key, doc);
+  });
+  
+  // Add/merge newly approved documents
+  currentlyApproved.forEach(newDoc => {
+    const key = newDoc.id || newDoc.name || newDoc.fileName;
+    if (mergedMap.has(key)) {
+      console.log("Document already exists, updating:", newDoc.name || newDoc.fileName);
+      // Update existing document with latest data
+      mergedMap.set(key, { ...mergedMap.get(key), ...newDoc });
+    } else {
+      console.log("Adding NEW document:", newDoc.name || newDoc.fileName);
+      mergedMap.set(key, newDoc);
+    }
+  });
+  
+  const mergedApproved = Array.from(mergedMap.values());
+  console.log("FINAL MERGED approved documents:", mergedApproved.map(d => d.name || d.fileName));
+  console.log("Total approved documents count:", mergedApproved.length);
+  
+  // Save merged list to localStorage
+  localStorage.setItem(storageKey, JSON.stringify(mergedApproved));
+  
+  // Also save to sessionStorage for redundancy
+  sessionStorage.setItem(storageKey, JSON.stringify(mergedApproved));
+  
+  setShowSuccessToast(true);
+  setTimeout(() => {
+    onStepChange(2, resolvedSessionId);
+  }, 2200);
+};
 
   const styleInject = (
     <style>{`
