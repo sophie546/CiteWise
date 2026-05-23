@@ -8,6 +8,80 @@ const METRICS = [
   { label: "Citation Quality", key: "citation" },
 ];
 
+const FLAG_LABELS = {
+  TOPIC_MISMATCH: "Topic mismatch",
+  NO_METHOD_JUSTIFICATION: "No method justification",
+  NO_EVALUATION_METRICS: "No evaluation metrics",
+  NO_THEORY_OR_FRAMEWORK: "No theory or framework",
+  FRAMEWORK_NAMED_NOT_USED: "Framework named but not meaningfully used",
+  REFERENCES_MISSING_OR_UNCLEAR: "References missing or unclear",
+  CATALYST_GAP_COVERAGE_TOO_LOW: "CATalyst gap coverage too low",
+  SOURCE_COVERAGE_BELOW_80_PERCENT: "Source coverage below 80%",
+};
+
+const SPECIAL_TERM_LABELS = {
+  ai: "AI",
+  apa: "APA",
+  doi: "DOI",
+  pdf: "PDF",
+  rag: "RAG",
+  catalyst: "CATalyst",
+  api: "API",
+};
+
+const formatFlagLabel = (flag) => {
+  if (flag === undefined || flag === null) return "";
+
+  const rawValue = String(flag).trim();
+  if (!rawValue) return "";
+
+  if (FLAG_LABELS[rawValue]) {
+    return FLAG_LABELS[rawValue];
+  }
+
+  if (!/^[A-Z0-9_]+$/.test(rawValue)) {
+    return rawValue.replace(/\s+/g, " ");
+  }
+
+  const readable = rawValue
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word) => {
+      if (!word) return word;
+      if (/^\d+%$/.test(word)) return word;
+
+      const specialLabel = SPECIAL_TERM_LABELS[word];
+      if (specialLabel) return specialLabel;
+
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(" ");
+
+  return readable.charAt(0).toUpperCase() + readable.slice(1);
+};
+
+const FLAG_GROUP_STYLES = {
+  mismatch: {
+    labelColor: "#ff6b6b",
+    borderColor: "rgba(255,107,107,0.18)",
+    chipBackground: "#221212",
+    chipColor: "#ffb3b3",
+  },
+  weakness: {
+    labelColor: "#ffb86b",
+    borderColor: "rgba(255,184,107,0.14)",
+    chipBackground: "#241a0e",
+    chipColor: "#ffd39b",
+  },
+  validation: {
+    labelColor: "#8acbff",
+    borderColor: "rgba(138,203,255,0.14)",
+    chipBackground: "#0e2330",
+    chipColor: "#c7e6ff",
+  },
+};
+
 // Helper to normalise values: 0.75 → 75, 85 → 85
 const getPercentage = (value) => {
   if (value === undefined || value === null) return 0;
@@ -73,6 +147,90 @@ const ScoreBar = ({ label, value }) => {
 };
 
 const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceLevel, relevanceLevel, mismatchFlags = [], weaknessFlags = [], validationFlags = [] }) => {
+  const renderFlagGroup = (title, flags, variant) => {
+    if (!flags || flags.length === 0) return null;
+
+    const styles = FLAG_GROUP_STYLES[variant];
+
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+          flex: "1 1 240px",
+          minWidth: "0",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: "11px",
+            color: styles.labelColor,
+            letterSpacing: "0.02em",
+          }}
+        >
+          <span
+            style={{
+              width: "8px",
+              height: "8px",
+              borderRadius: "999px",
+              background: styles.labelColor,
+              boxShadow: `0 0 0 3px ${styles.borderColor}`,
+              flexShrink: 0,
+            }}
+          />
+          {title}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "8px",
+            alignItems: "flex-start",
+            minWidth: "0",
+          }}
+        >
+          {flags.map((flag, idx) => {
+            const label = formatFlagLabel(flag);
+            const isValidation = variant === "validation";
+
+            return (
+              <span
+                key={`${title}-${idx}-${String(flag)}`}
+                title={String(flag)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  maxWidth: isValidation ? "100%" : "280px",
+                  minWidth: 0,
+                  padding: isValidation ? "5px 10px" : "4px 10px",
+                  borderRadius: "999px",
+                  fontFamily: "'Geist', sans-serif",
+                  fontSize: "12px",
+                  lineHeight: 1.3,
+                  color: styles.chipColor,
+                  background: styles.chipBackground,
+                  border: `1px solid ${styles.borderColor}`,
+                  whiteSpace: isValidation ? "nowrap" : "normal",
+                  overflow: "hidden",
+                  textOverflow: isValidation ? "ellipsis" : "clip",
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+                }}
+              >
+                {label}
+              </span>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
       {/* Section Header (using second file's icon and style) */}
@@ -111,54 +269,43 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
       </div>
 
       {/* Overall + recommendation area */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: '36px', fontWeight: 800, color: '#D98A21' }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: "20px",
+          marginTop: "6px",
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: '1 1 320px', minWidth: 0 }}>
+          <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: '36px', fontWeight: 800, color: '#D98A21', lineHeight: 1 }}>
             {scores.overall !== null && scores.overall !== undefined ? `${Math.round(scores.overall)}%` : '--'}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
             <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '12px', color: '#8a8278' }}>Overall Score</div>
-            <div style={{ display: 'flex', gap: '8px', marginTop: '6px', alignItems: 'center' }}>
-              <span style={{ fontFamily: "'Poppins', sans-serif", fontSize: '13px', fontWeight: 700, color: '#f0ece6' }}>{recommendationStatus || 'No recommendation'}</span>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: "'Poppins', sans-serif", fontSize: '13px', fontWeight: 700, color: '#f0ece6', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{recommendationStatus || 'No recommendation'}</span>
               <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: '#8a8278' }}>Confidence: <strong style={{ color: '#D98A21', marginLeft: 6 }}>{confidenceLevel || 'Unknown'}</strong></span>
               <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: '#8a8278' }}>Relevance: <strong style={{ color: '#D98A21', marginLeft: 6 }}>{relevanceLevel || 'Unknown'}</strong></span>
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-          {mismatchFlags && mismatchFlags.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: '340px' }}>
-              <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: '#ff6b6b' }}>Mismatch:</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '96px', overflowY: 'auto', paddingRight: '6px' }}>
-                {mismatchFlags.map((f, idx) => (
-                  <span key={idx} style={{ background: '#221212', color: '#ff6b6b', padding: '4px 8px', borderRadius: '999px', fontSize: '12px', whiteSpace: 'normal', lineHeight: 1.2, border: '1px solid rgba(255,107,107,0.18)' }}>{f}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {weaknessFlags && weaknessFlags.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: '340px' }}>
-              <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: '#ffb86b' }}>Weakness:</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '96px', overflowY: 'auto', paddingRight: '6px' }}>
-                {weaknessFlags.map((f, idx) => (
-                  <span key={idx} style={{ background: '#241a0e', color: '#ffb86b', padding: '4px 8px', borderRadius: '8px', fontSize: '12px', whiteSpace: 'normal', lineHeight: 1.2, border: '1px solid rgba(255,184,107,0.12)' }}>{f}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {validationFlags && validationFlags.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: '340px' }}>
-              <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: '#8acbff' }}>Validation:</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '96px', overflowY: 'auto', paddingRight: '6px' }}>
-                {validationFlags.map((f, idx) => (
-                  <span key={idx} style={{ background: '#0e2330', color: '#8acbff', padding: '4px 8px', borderRadius: '8px', fontSize: '12px', whiteSpace: 'normal', lineHeight: 1.2, border: '1px solid rgba(138,203,255,0.08)' }}>{f}</span>
-                ))}
-              </div>
-            </div>
-          )}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '12px',
+            flex: '1 1 360px',
+            minWidth: 0,
+            width: '100%',
+          }}
+        >
+          {renderFlagGroup('Mismatch', mismatchFlags, 'mismatch')}
+          {renderFlagGroup('Weakness', weaknessFlags, 'weakness')}
+          {renderFlagGroup('Validation', validationFlags, 'validation')}
         </div>
       </div>
     </div>

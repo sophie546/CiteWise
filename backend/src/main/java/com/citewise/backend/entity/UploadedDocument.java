@@ -2,6 +2,8 @@ package com.citewise.backend.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -27,6 +29,16 @@ public class UploadedDocument {
 
     @Column(name = "approved", nullable = false, columnDefinition = "boolean default false")
     private boolean approved = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "scoring_status")
+    private ScoringStatus scoringStatus = ScoringStatus.PENDING;
+
+    private LocalDateTime scoringStartedAt;
+    private LocalDateTime scoringCompletedAt;
+
+    @Column(columnDefinition = "TEXT")
+    private String scoringErrorMessage;
 
     public UploadedDocument() {}
 
@@ -56,4 +68,16 @@ public class UploadedDocument {
 
     public boolean isApproved() { return approved; }
     public void setApproved(boolean approved) { this.approved = approved; }
+
+    public ScoringStatus getScoringStatus() { return scoringStatus; }
+    public void setScoringStatus(ScoringStatus scoringStatus) { this.scoringStatus = scoringStatus; }
+
+    public LocalDateTime getScoringStartedAt() { return scoringStartedAt; }
+    public void setScoringStartedAt(LocalDateTime scoringStartedAt) { this.scoringStartedAt = scoringStartedAt; }
+
+    public LocalDateTime getScoringCompletedAt() { return scoringCompletedAt; }
+    public void setScoringCompletedAt(LocalDateTime scoringCompletedAt) { this.scoringCompletedAt = scoringCompletedAt; }
+
+    public String getScoringErrorMessage() { return scoringErrorMessage; }
+    public void setScoringErrorMessage(String scoringErrorMessage) { this.scoringErrorMessage = scoringErrorMessage; }
 }
