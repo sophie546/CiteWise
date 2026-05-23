@@ -68,13 +68,6 @@ public class SemanticChunkingService {
         this.chunkOverlap = Math.max(0, Math.min(this.chunkSize - 50, chunkOverlap));
     }
 
-    SemanticChunkingService(int maxCharsToN8n, int maxChunks, int chunkSize, int chunkOverlap) {
-        this.maxCharsToN8n = Math.max(1000, maxCharsToN8n);
-        this.maxChunks = Math.max(1, maxChunks);
-        this.chunkSize = Math.max(300, chunkSize);
-        this.chunkOverlap = Math.max(0, Math.min(this.chunkSize - 50, chunkOverlap));
-    }
-
     public String selectRelevantChunks(String fullText, SemanticBaseline baseline) {
         if (fullText == null) {
             return "";

@@ -327,8 +327,14 @@ public class DocumentUploadService {
         long extractStartNs = System.nanoTime();
         try (PDDocument document = Loader.loadPDF(data)) {
             PDFTextStripper stripper = new PDFTextStripper();
-            String text = stripper.getText(document);
+            String rawText = stripper.getText(document);
             logPerf(null, fileName, "pdf_extract", extractStartNs);
+            String text = sanitizeExtractedText(rawText);
+            int rawLength = rawText == null ? 0 : rawText.length();
+            int sanitizedLength = text.length();
+            if (rawLength != sanitizedLength) {
+                logger.info("Sanitized extracted text for file {} from {} chars to {} chars", fileName, rawLength, sanitizedLength);
+            }
             int charCount = text == null ? 0 : text.trim().length();
 
             if (charCount == 0) {
@@ -363,7 +369,25 @@ public class DocumentUploadService {
         } catch (IOException ex) {
             logPerf(null, fileName, "pdf_extract_failed", extractStartNs);
             return new IndexedResult(index, new DocumentUploadResult(null, fileName, sizeBytes, false, "Unable to extract text", 0));
+        } catch (Exception ex) {
+            logPerf(null, fileName, "pdf_upload_failed", extractStartNs);
+            logger.error("Failed to parse or save uploaded PDF {}: {}", fileName, ex.getMessage(), ex);
+            return new IndexedResult(index, new DocumentUploadResult(null, fileName, sizeBytes, false, "Upload failed: " + abbreviateError(ex.getMessage()), 0));
         }
+    }
+
+    private String sanitizeExtractedText(String text) {
+        if (text == null) {
+            return "";
+        }
+        return text
+            .replace("\u0000", "")
+            .replaceAll("[\\p{Cntrl}&&[^\r\n\t]]", " ")
+            .replaceAll("[\\uFFFE\\uFFFF]", "")
+            .replaceAll("[ \\t\\x0B\\f]+", " ")
+            .replaceAll("\\r\\n?", "\n")
+            .replaceAll("\\n{3,}", "\n\n")
+            .trim();
     }
 
     private void logPerf(Long documentId, String fileName, String stage, long startNs) {
