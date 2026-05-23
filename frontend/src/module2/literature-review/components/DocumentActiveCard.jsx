@@ -174,30 +174,36 @@ export default function DocumentActiveCard({
           Document {currentIndex + 1} of {documents.length}
         </span>
 
-        <div style={{ display: "flex", gap: "14px" }}>
+        <div style={{ display: "flex", gap: "10px" }}>
           {["‹", "›"].map((arrow, i) => (
             <button
               key={arrow}
               onClick={() => onNavigate && onNavigate(i === 0 ? currentIndex - 1 : currentIndex + 1)}
               style={{
-                background: "none",
-                border: "none",
-                color: "#D85A30",
+                background: "#D85A30",
+                border: "1px solid #D85A30",
+                color: "#ffffff",
                 cursor: "pointer",
-                fontSize: "24px",
+                width: "30px",
+                height: "30px",
+                borderRadius: "8px",
+                fontSize: "22px",
                 fontWeight: "700",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 lineHeight: 1,
-                padding: "0 4px",
-                transition: "transform 0.15s, opacity 0.15s",
+                padding: 0,
+                boxShadow: "0 0 10px rgba(216, 90, 48, 0.35)",
+                transition: "transform 0.15s, opacity 0.15s, box-shadow 0.15s",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = "scale(1.2)";
+                e.currentTarget.style.boxShadow = "0 0 14px rgba(216, 90, 48, 0.55)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "scale(1)";
+                e.currentTarget.style.boxShadow = "0 0 10px rgba(216, 90, 48, 0.35)";
               }}
             >
               {arrow}
