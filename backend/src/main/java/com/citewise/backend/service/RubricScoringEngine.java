@@ -199,15 +199,31 @@ public class RubricScoringEngine {
         }
         boolean hasExcerpts = insight.getEvidenceExcerpts() != null && !insight.getEvidenceExcerpts().isEmpty();
         boolean hasScores =
-            isPositive(insight.getGapAlignmentScore())
-                || isPositive(insight.getMethodologyScore())
-                || isPositive(insight.getTheoreticalScore())
-                || isPositive(insight.getCitationScore());
-        return hasExcerpts || hasScores;
+            insight.getGapAlignmentScore() != null
+                || insight.getMethodologyScore() != null
+                || insight.getTheoreticalScore() != null
+                || insight.getCitationScore() != null;
+        boolean hasSignals =
+            hasText(insight.getRecommendationStatus())
+                || hasText(insight.getRelevanceLevel())
+                || hasText(insight.getConfidenceLevel())
+                || hasText(insight.getRawAiResponseJson())
+                || hasFlags(insight.getMismatchFlagsJson())
+                || hasFlags(insight.getWeaknessFlagsJson())
+                || hasFlags(insight.getValidationFlagsJson());
+        return hasExcerpts || hasScores || hasSignals;
     }
 
     private boolean isPositive(Double value) {
         return value != null && value > 0;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private boolean hasFlags(String json) {
+        return json != null && !json.isBlank() && !"[]".equals(json.trim());
     }
 
     public DocumentInsight mapToEntity(RawAIResponse response, Long documentId) {

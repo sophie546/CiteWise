@@ -8,6 +8,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.ResourceAccessException;
 
 import com.citewise.backend.dto.NlpEvaluationRequest;
 import com.citewise.backend.dto.RawAIResponse;
@@ -44,15 +45,16 @@ public class NLPMicroserviceClient {
         return objectMapper.writeValueAsString(payload);
     }
 
-    public String evaluateDocumentRaw(NlpEvaluationRequest request) {
+    public String evaluateDocumentRaw(NlpEvaluationRequest request, Long documentId) {
         try {
+            long startNs = System.nanoTime();
             String jsonPayload = buildWebhookPayload(request);
             int textLen = request.getExtractedText() != null ? request.getExtractedText().length() : 0;
             logger.info("Calling n8n webhook at: {} (extracted_text chars={})", webhookUrl, textLen);
+            logger.info("PERF documentId={} file={} stage={} elapsedMs={}", documentId, "n/a", "n8n_request_start", 0);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setConnection("close");
 
             HttpEntity<String> entity = new HttpEntity<>(jsonPayload, headers);
             String jsonResponse = restTemplate.postForObject(webhookUrl, entity, String.class);
@@ -61,7 +63,13 @@ public class NLPMicroserviceClient {
                 return null;
             }
 
-            logger.info("n8n webhook response ({} chars): {}", jsonResponse.length(), jsonResponse);
+            long elapsedMs = (System.nanoTime() - startNs) / 1_000_000L;
+            logger.info("PERF documentId={} file={} stage={} elapsedMs={}", documentId, "n/a", "n8n_request", elapsedMs);
+            logger.info("n8n webhook response length={} chars", jsonResponse.length());
+            if (logger.isDebugEnabled()) {
+                int limit = Math.min(200, jsonResponse.length());
+                logger.debug("n8n webhook response preview: {}", jsonResponse.substring(0, limit));
+            }
 
             if (N8nResponseValidator.isPlaceholderRawJson(jsonResponse)) {
                 logger.error(
@@ -72,14 +80,17 @@ public class NLPMicroserviceClient {
             }
 
             return jsonResponse;
+        } catch (ResourceAccessException e) {
+            logger.error("n8n webhook call failed: {}", e.getMessage());
+            throw e;
         } catch (Exception e) {
             logger.error("n8n webhook call failed: {}", e.getMessage());
             throw new RuntimeException("Failed to process AI scoring: " + e.getMessage(), e);
         }
     }
 
-    public RawAIResponse evaluateDocument(NlpEvaluationRequest request) {
-        String jsonResponse = evaluateDocumentRaw(request);
+    public RawAIResponse evaluateDocument(NlpEvaluationRequest request, Long documentId) {
+        String jsonResponse = evaluateDocumentRaw(request, documentId);
         if (jsonResponse == null) {
             return null;
         }

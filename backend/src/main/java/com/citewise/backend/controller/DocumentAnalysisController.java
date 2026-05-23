@@ -8,6 +8,7 @@ import java.util.List;
 import com.citewise.backend.dto.DocumentInsightDto;
 import com.citewise.backend.dto.DocumentInsightDto.EvidenceExcerptDto;
 import com.citewise.backend.entity.UploadedDocument;
+import java.util.Locale;
 import com.citewise.backend.repository.DocumentInsightRepository;
 import com.citewise.backend.repository.UploadedDocumentRepository;
 import com.citewise.backend.service.DocumentUploadService;
@@ -16,6 +17,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +28,8 @@ import java.util.Optional;
 @RequestMapping("/api/v1/documents")
 @CrossOrigin(origins = "*")
 public class DocumentAnalysisController {
+
+    private static final Logger logger = LoggerFactory.getLogger(DocumentAnalysisController.class);
 
     private final DocumentInsightRepository documentInsightRepository;
     private final UploadedDocumentRepository uploadedDocumentRepository;
@@ -69,17 +74,6 @@ public class DocumentAnalysisController {
                     dto.setConfidenceLevel(insight.getConfidenceLevel());
                     dto.setRelevanceLevel(insight.getRelevanceLevel());
 
-                    // Debug logging: ensure these fields are present before returning
-                    System.out.println("Returning insight for doc " + insight.getDocumentId() + ": recommendation=" + insight.getRecommendationStatus()
-                        + ", confidence=" + insight.getConfidenceLevel() + ", relevance=" + insight.getRelevanceLevel() + ", overall=" + insight.getOverallScore());
-                    try {
-                        ObjectMapper mapper = new ObjectMapper();
-                        String jsonOut = mapper.writeValueAsString(dto);
-                        System.out.println("Outgoing DocumentInsightDto JSON: " + jsonOut);
-                    } catch (Exception e) {
-                        System.out.println("Failed to serialize DTO for logging: " + e.getMessage());
-                    }
-
                     // set filename if available
                     uploadedDocumentRepository.findById(insight.getDocumentId()).ifPresent(u -> dto.setFilename(u.getFileName()));
 
@@ -113,6 +107,19 @@ public class DocumentAnalysisController {
                         dto.setEvidenceExcerpts(exDtos);
                     }
 
+                    logger.debug(
+                        "Returning insight docId={} recommendation={} confidence={} relevance={} overall={} flags(mismatch/weakness/validation)={}/{}/{} excerpts={}",
+                        insight.getDocumentId(),
+                        insight.getRecommendationStatus(),
+                        insight.getConfidenceLevel(),
+                        insight.getRelevanceLevel(),
+                        insight.getOverallScore(),
+                        dto.getMismatchFlags() != null ? dto.getMismatchFlags().size() : 0,
+                        dto.getWeaknessFlags() != null ? dto.getWeaknessFlags().size() : 0,
+                        dto.getValidationFlags() != null ? dto.getValidationFlags().size() : 0,
+                        dto.getEvidenceExcerpts() != null ? dto.getEvidenceExcerpts().size() : 0
+                    );
+
                     return ResponseEntity.ok(dto);
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -124,14 +131,11 @@ public class DocumentAnalysisController {
      */
     @GetMapping("/session/{sessionId}")
     public ResponseEntity<List<DocumentSummaryDto>> getSessionDocuments(@PathVariable("sessionId") String sessionId) {
-        System.out.println("=== SESSION ID: '" + sessionId + "'");
+        logger.debug("Session documents request sessionId={}", sessionId);
         
         List<UploadedDocument> documents = uploadedDocumentRepository.findBySessionId(sessionId);
         
-        System.out.println("=== FOUND " + documents.size() + " documents for this session");
-        for (UploadedDocument doc : documents) {
-            System.out.println("  - " + doc.getFileName() + " | Session: '" + doc.getSessionId() + "'");
-        }
+        logger.debug("Found {} documents for session", documents.size());
         
         List<DocumentSummaryDto> summaries = new ArrayList<>();
 
@@ -149,12 +153,16 @@ public class DocumentAnalysisController {
 
                 summaries.add(new DocumentSummaryDto(
                         doc.getId(), doc.getFileName(), doc.getSizeBytes(),
-                        "complete", relevancy, gap, method, theory, citation
+                    "complete", relevancy, gap, method, theory, citation
                 ));
             } else {
+                String status = "processing";
+                if (doc.getScoringStatus() != null) {
+                    status = doc.getScoringStatus().name().toLowerCase(Locale.ROOT);
+                }
                 summaries.add(new DocumentSummaryDto(
                         doc.getId(), doc.getFileName(), doc.getSizeBytes(),
-                        "processing", null, null, null, null, null
+                    status, null, null, null, null, null
                 ));
             }
         }
@@ -176,7 +184,7 @@ public class DocumentAnalysisController {
                 .body(new ApiResponse<>(false, "Document text is empty", null));
         }
 
-        documentUploadService.analyzeDocumentAsync(document);
+        documentUploadService.analyzeDocumentAsync(document, true);
         return ResponseEntity.ok(new ApiResponse<>(true, "Assessment queued", "queued"));
     }
 

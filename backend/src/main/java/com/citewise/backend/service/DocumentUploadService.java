@@ -5,6 +5,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -12,6 +13,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -29,12 +31,14 @@ import com.citewise.backend.dto.DocumentUploadResult;
 import com.citewise.backend.dto.NlpEvaluationRequest;
 import com.citewise.backend.entity.DocumentInsight;
 import com.citewise.backend.entity.SemanticBaseline;
+import com.citewise.backend.entity.ScoringStatus;
 import com.citewise.backend.entity.UploadedDocument;
 import com.citewise.backend.repository.DocumentInsightRepository;
 import com.citewise.backend.repository.SemanticBaselineRepository;
 import com.citewise.backend.repository.UploadedDocumentRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.web.client.ResourceAccessException;
 
 @Service
 public class DocumentUploadService {
@@ -46,7 +50,9 @@ public class DocumentUploadService {
     private final SemanticBaselineRepository semanticBaselineRepository;
     private final NLPMicroserviceClient nlpMicroserviceClient;
     private final RubricScoringEngine rubricScoringEngine;
+    private final SemanticChunkingService semanticChunkingService;
     private final Executor aiScoringExecutor;
+    private final Executor pdfParsingExecutor;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public DocumentUploadService(
@@ -56,107 +62,129 @@ public class DocumentUploadService {
             SemanticBaselineRepository semanticBaselineRepository,
             NLPMicroserviceClient nlpMicroserviceClient,
             RubricScoringEngine rubricScoringEngine,
-            @Qualifier("aiScoringExecutor") Executor aiScoringExecutor) {
+            SemanticChunkingService semanticChunkingService,
+            @Qualifier("aiScoringExecutor") Executor aiScoringExecutor,
+            @Qualifier("pdfParsingExecutor") Executor pdfParsingExecutor) {
         this.maxFileSizeBytes = maxFileSizeMb * 1024L * 1024L;
         this.uploadedDocumentRepository = uploadedDocumentRepository;
         this.documentInsightRepository = documentInsightRepository;
         this.semanticBaselineRepository = semanticBaselineRepository;
         this.nlpMicroserviceClient = nlpMicroserviceClient;
         this.rubricScoringEngine = rubricScoringEngine;
+        this.semanticChunkingService = semanticChunkingService;
         this.aiScoringExecutor = aiScoringExecutor;
+        this.pdfParsingExecutor = pdfParsingExecutor;
     }
 
     public DocumentUploadResponse processUploads(String sessionId, List<MultipartFile> files) {
+        long requestStartNs = System.nanoTime();
+        logger.info("PERF documentId={} file={} stage={} elapsedMs={}", "n/a", "n/a", "upload_start", 0);
         if (files == null || files.isEmpty()) {
             return new DocumentUploadResponse(0, 0, 0, List.of());
         }
 
-        List<DocumentUploadResult> results = new ArrayList<>();
+        List<DocumentUploadResult> results = new ArrayList<>(Collections.nCopies(files.size(), null));
         Set<String> seenHashes = new HashSet<>();
         int accepted = 0;
+        List<CompletableFuture<IndexedResult>> parsingTasks = new ArrayList<>();
 
-        for (MultipartFile file : files) {
+        for (int i = 0; i < files.size(); i++) {
+            final int index = i;
+            MultipartFile file = files.get(i);
             String fileName = safeFileName(file);
             long sizeBytes = file.getSize();
 
             if (file.isEmpty()) {
-                results.add(new DocumentUploadResult(null, fileName, sizeBytes, false, "File is empty", 0));
+                results.set(index, new DocumentUploadResult(null, fileName, sizeBytes, false, "File is empty", 0));
                 continue;
             }
 
             if (!isPdf(file, fileName)) {
-                results.add(new DocumentUploadResult(null, fileName, sizeBytes, false, "Unsupported file type", 0));
+                results.set(index, new DocumentUploadResult(null, fileName, sizeBytes, false, "Unsupported file type", 0));
                 continue;
             }
 
             if (sizeBytes > maxFileSizeBytes) {
-                results.add(new DocumentUploadResult(null, fileName, sizeBytes, false, "File exceeds size limit", 0));
+                results.set(index, new DocumentUploadResult(null, fileName, sizeBytes, false, "File exceeds size limit", 0));
                 continue;
             }
 
             // Check if a file with the same name was already uploaded in this session
             if (uploadedDocumentRepository.existsBySessionIdAndFileName(sessionId, fileName)) {
-                results.add(new DocumentUploadResult(null, fileName, sizeBytes, false, "File already uploaded previously", 0));
+                results.set(index, new DocumentUploadResult(null, fileName, sizeBytes, false, "File already uploaded previously", 0));
                 continue;
             }
 
             byte[] data;
             try {
+                long bytesStartNs = System.nanoTime();
                 data = file.getBytes();
+                logPerf(null, fileName, "file_bytes_read", bytesStartNs);
             } catch (IOException ex) {
-                results.add(new DocumentUploadResult(null, fileName, sizeBytes, false, "Failed to read file", 0));
+                results.set(index, new DocumentUploadResult(null, fileName, sizeBytes, false, "Failed to read file", 0));
                 continue;
             }
 
             String hash = hashFile(data);
             if (!seenHashes.add(hash)) {
-                results.add(new DocumentUploadResult(null, fileName, sizeBytes, false, "Duplicate file in batch", 0));
+                results.set(index, new DocumentUploadResult(null, fileName, sizeBytes, false, "Duplicate file in batch", 0));
                 continue;
             }
 
             // Check against previously uploaded documents in the database
             if (uploadedDocumentRepository.existsBySessionIdAndFileHash(sessionId, hash)) {
-                results.add(new DocumentUploadResult(null, fileName, sizeBytes, false, "File already uploaded previously", 0));
+                results.set(index, new DocumentUploadResult(null, fileName, sizeBytes, false, "File already uploaded previously", 0));
                 continue;
             }
+            parsingTasks.add(CompletableFuture.supplyAsync(
+                () -> parseAndStoreDocument(sessionId, fileName, sizeBytes, hash, data, index),
+                pdfParsingExecutor
+            ));
+        }
 
-            try (PDDocument document = Loader.loadPDF(data)) {
-                PDFTextStripper stripper = new PDFTextStripper();
-                String text = stripper.getText(document);
-                int charCount = text == null ? 0 : text.trim().length();
-
-                if (charCount == 0) {
-                    results.add(new DocumentUploadResult(null, fileName, sizeBytes, false, "No extractable text", 0));
-                    continue;
-                }
-
-                UploadedDocument entity = new UploadedDocument();
-                entity.setSessionId(sessionId);
-                entity.setFileName(fileName);
-                entity.setFileHash(hash);
-                entity.setSizeBytes(sizeBytes);
-                entity.setCharacterCount(charCount);
-                entity.setUploadedAt(LocalDateTime.now());
-                entity.setParsedText(text);
-
-                entity = uploadedDocumentRepository.save(entity);
-                analyzeDocumentAsync(entity);
-
-                results.add(new DocumentUploadResult(entity.getId(), fileName, sizeBytes, true, "Parsed successfully; AI scoring queued", charCount));
+        for (CompletableFuture<IndexedResult> task : parsingTasks) {
+            IndexedResult result = task.join();
+            results.set(result.index, result.result);
+            if (result.result != null && result.result.success()) {
                 accepted += 1;
-            } catch (InvalidPasswordException ex) {
-                results.add(new DocumentUploadResult(null, fileName, sizeBytes, false, "Encrypted PDF", 0));
-            } catch (IOException ex) {
-                results.add(new DocumentUploadResult(null, fileName, sizeBytes, false, "Unable to extract text", 0));
             }
         }
+
+        logPerf(null, "n/a", "upload_complete", requestStartNs);
         return new DocumentUploadResponse(results.size(), accepted, results.size() - accepted, results);
     }
 
     public void analyzeDocumentAsync(UploadedDocument document) {
+        analyzeDocumentAsync(document, false);
+    }
+
+    public void analyzeDocumentAsync(UploadedDocument document, boolean forceReassessment) {
         CompletableFuture.runAsync(() -> {
+            UploadedDocument workingDocument = null;
             try {
                 logger.info("Starting AI scoring pipeline for document ID: {}", document.getId());
+                logPerf(document.getId(), document.getFileName(), "ai_pipeline_start", System.nanoTime());
+
+                workingDocument = uploadedDocumentRepository.findById(document.getId())
+                    .orElse(document);
+
+                if (workingDocument.getScoringStatus() == ScoringStatus.PROCESSING) {
+                    logger.info("AI scoring already processing for document {} — skipping duplicate request", document.getId());
+                    return;
+                }
+
+                if (!forceReassessment) {
+                    boolean hasInsight = documentInsightRepository.findByDocumentId(document.getId()).isPresent();
+                    if (hasInsight) {
+                        logger.info("AI scoring already completed for document {} — skipping duplicate request", document.getId());
+                        return;
+                    }
+                } else {
+                    documentInsightRepository.findByDocumentId(document.getId())
+                        .ifPresent(documentInsightRepository::delete);
+                }
+
+                updateScoringStatus(workingDocument, ScoringStatus.PROCESSING, null, LocalDateTime.now(), null);
 
                 SemanticBaseline baseline = loadBaseline(document.getSessionId());
                 if (baseline == null) {
@@ -164,21 +192,35 @@ public class DocumentUploadService {
                         "No research baseline found for session {} — skipping AI scoring for document {}. "
                         + "Import a CATalyst workspace for this session first.",
                         document.getSessionId(), document.getId());
+                    updateScoringStatus(workingDocument, ScoringStatus.FAILED, "Missing semantic baseline", null, LocalDateTime.now());
                     return;
                 }
 
+                String fullText = workingDocument.getParsedText();
+                long chunkingStartNs = System.nanoTime();
+                String selectedText = semanticChunkingService.selectRelevantChunks(fullText, baseline);
+                logPerf(workingDocument.getId(), workingDocument.getFileName(), "chunking", chunkingStartNs);
+                int fullLength = fullText != null ? fullText.length() : 0;
+                int selectedLength = selectedText != null ? selectedText.length() : 0;
+                logger.info(
+                    "Semantic scoring payload reduced for document {} from {} chars to {} chars",
+                    document.getId(), fullLength, selectedLength
+                );
+
                 NlpEvaluationRequest request = new NlpEvaluationRequest(
-                    document.getParsedText(),
+                    selectedText,
                     baseline.getProjectTitle() != null ? baseline.getProjectTitle() : "",
                     baseline.getRationale() != null ? baseline.getRationale() : "",
                     parseGapsToString(baseline.getResearchGaps())
                 );
 
                 logger.info("Calling n8n for document ID: {}", document.getId());
-                String rawResponse = nlpMicroserviceClient.evaluateDocumentRaw(request);
+                String rawResponse = nlpMicroserviceClient.evaluateDocumentRaw(request, document.getId());
 
                 if (rawResponse != null) {
+                    long parseStartNs = System.nanoTime();
                     DocumentInsight insight = rubricScoringEngine.parseAIResponse(rawResponse, document.getId());
+                    logPerf(workingDocument.getId(), workingDocument.getFileName(), "rubric_parse", parseStartNs);
                     if (insight != null) {
                         // If n8n provided an explicit overall score, prefer it over any recomputed average.
                         try {
@@ -231,9 +273,12 @@ public class DocumentUploadService {
                         } catch (Exception ex) {
                             logger.debug("Could not extract provided overall score from n8n response", ex);
                         }
+                        long saveStartNs = System.nanoTime();
                         documentInsightRepository.findByDocumentId(document.getId())
                             .ifPresent(documentInsightRepository::delete);
                         documentInsightRepository.save(insight);
+                        logPerf(workingDocument.getId(), workingDocument.getFileName(), "insight_save", saveStartNs);
+                        updateScoringStatus(workingDocument, ScoringStatus.COMPLETE, null, null, LocalDateTime.now());
                         int excerptCount = insight.getEvidenceExcerpts() != null
                             ? insight.getEvidenceExcerpts().size() : 0;
                         logger.info(
@@ -249,6 +294,8 @@ public class DocumentUploadService {
                             insight.getRelevanceLevel(),
                             excerptCount
                         );
+                    } else {
+                        updateScoringStatus(workingDocument, ScoringStatus.FAILED, "Empty insight response", null, LocalDateTime.now());
                     }
                 } else {
                     logger.warn(
@@ -256,11 +303,128 @@ public class DocumentUploadService {
                         + "In Code node use: const raw = item.output ?? item.text; and Respond: ={{ JSON.stringify($json) }}",
                         document.getId()
                     );
+                    updateScoringStatus(workingDocument, ScoringStatus.FAILED, "Empty n8n response", null, LocalDateTime.now());
                 }
+            } catch (ResourceAccessException ex) {
+                ScoringStatus status = isTimeoutException(ex) ? ScoringStatus.TIMEOUT : ScoringStatus.FAILED;
+                updateScoringStatus(workingDocument != null ? workingDocument : document,
+                    status, abbreviateError(ex.getMessage()), null, LocalDateTime.now());
+                logger.error("AI scoring pipeline failed for document {}: {}", document.getId(), ex.getMessage(), ex);
             } catch (Exception e) {
+                updateScoringStatus(workingDocument != null ? workingDocument : document,
+                    ScoringStatus.FAILED, abbreviateError(e.getMessage()), null, LocalDateTime.now());
                 logger.error("AI scoring pipeline failed for document {}: {}", document.getId(), e.getMessage(), e);
             }
         }, aiScoringExecutor);
+    }
+
+    private IndexedResult parseAndStoreDocument(String sessionId,
+                                                String fileName,
+                                                long sizeBytes,
+                                                String hash,
+                                                byte[] data,
+                                                int index) {
+        long extractStartNs = System.nanoTime();
+        try (PDDocument document = Loader.loadPDF(data)) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            String text = stripper.getText(document);
+            logPerf(null, fileName, "pdf_extract", extractStartNs);
+            int charCount = text == null ? 0 : text.trim().length();
+
+            if (charCount == 0) {
+                return new IndexedResult(index, new DocumentUploadResult(null, fileName, sizeBytes, false, "No extractable text", 0));
+            }
+
+            UploadedDocument entity = new UploadedDocument();
+            entity.setSessionId(sessionId);
+            entity.setFileName(fileName);
+            entity.setFileHash(hash);
+            entity.setSizeBytes(sizeBytes);
+            entity.setCharacterCount(charCount);
+            entity.setUploadedAt(LocalDateTime.now());
+            entity.setParsedText(text);
+            entity.setScoringStatus(ScoringStatus.PENDING);
+            entity.setScoringErrorMessage(null);
+            entity.setScoringStartedAt(null);
+            entity.setScoringCompletedAt(null);
+
+            long saveStartNs = System.nanoTime();
+            entity = uploadedDocumentRepository.save(entity);
+            logPerf(entity.getId(), fileName, "document_save", saveStartNs);
+
+            long enqueueStartNs = System.nanoTime();
+            analyzeDocumentAsync(entity);
+            logPerf(entity.getId(), fileName, "ai_enqueue", enqueueStartNs);
+
+            return new IndexedResult(index, new DocumentUploadResult(entity.getId(), fileName, sizeBytes, true, "Parsed successfully; AI scoring queued", charCount));
+        } catch (InvalidPasswordException ex) {
+            logPerf(null, fileName, "pdf_extract_failed", extractStartNs);
+            return new IndexedResult(index, new DocumentUploadResult(null, fileName, sizeBytes, false, "Encrypted PDF", 0));
+        } catch (IOException ex) {
+            logPerf(null, fileName, "pdf_extract_failed", extractStartNs);
+            return new IndexedResult(index, new DocumentUploadResult(null, fileName, sizeBytes, false, "Unable to extract text", 0));
+        }
+    }
+
+    private void logPerf(Long documentId, String fileName, String stage, long startNs) {
+        long elapsedMs = startNs <= 0 ? 0 : TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs);
+        logger.info("PERF documentId={} file={} stage={} elapsedMs={}", documentId, fileName, stage, elapsedMs);
+    }
+
+    private static class IndexedResult {
+        private final int index;
+        private final DocumentUploadResult result;
+
+        private IndexedResult(int index, DocumentUploadResult result) {
+            this.index = index;
+            this.result = result;
+        }
+    }
+
+    private void updateScoringStatus(UploadedDocument document,
+                                     ScoringStatus status,
+                                     String errorMessage,
+                                     LocalDateTime startedAt,
+                                     LocalDateTime completedAt) {
+        if (document == null) {
+            return;
+        }
+        document.setScoringStatus(status);
+        if (startedAt != null) {
+            document.setScoringStartedAt(startedAt);
+        }
+        if (completedAt != null) {
+            document.setScoringCompletedAt(completedAt);
+        }
+        if (errorMessage != null) {
+            document.setScoringErrorMessage(errorMessage);
+        } else if (status == ScoringStatus.PROCESSING || status == ScoringStatus.COMPLETE) {
+            document.setScoringErrorMessage(null);
+        }
+        uploadedDocumentRepository.save(document);
+    }
+
+    private boolean isTimeoutException(Throwable throwable) {
+        if (throwable == null) {
+            return false;
+        }
+        String message = throwable.getMessage();
+        if (message != null && message.toLowerCase(Locale.ROOT).contains("timed out")) {
+            return true;
+        }
+        Throwable cause = throwable.getCause();
+        return cause != null && isTimeoutException(cause);
+    }
+
+    private String abbreviateError(String message) {
+        if (message == null || message.isBlank()) {
+            return "Unexpected error";
+        }
+        String cleaned = message.replaceAll("\\s+", " ").trim();
+        if (cleaned.length() <= 280) {
+            return cleaned;
+        }
+        return cleaned.substring(0, 277) + "...";
     }
 
     private SemanticBaseline loadBaseline(String sessionId) {
