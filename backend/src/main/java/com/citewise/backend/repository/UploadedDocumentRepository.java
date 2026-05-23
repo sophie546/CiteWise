@@ -10,4 +10,6 @@
     public interface UploadedDocumentRepository extends JpaRepository<UploadedDocument, Long> {
         List<UploadedDocument> findBySessionId(String sessionId);
         List<UploadedDocument> findBySessionIdAndApprovedTrue(String sessionId);
+        boolean existsBySessionIdAndFileHash(String sessionId, String fileHash);
+        boolean existsBySessionIdAndFileName(String sessionId, String fileName);
     }

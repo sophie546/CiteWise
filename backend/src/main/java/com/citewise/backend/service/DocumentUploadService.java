@@ -94,6 +94,12 @@ public class DocumentUploadService {
                 continue;
             }
 
+            // Check if a file with the same name was already uploaded in this session
+            if (uploadedDocumentRepository.existsBySessionIdAndFileName(sessionId, fileName)) {
+                results.add(new DocumentUploadResult(null, fileName, sizeBytes, false, "File already uploaded previously", 0));
+                continue;
+            }
+
             byte[] data;
             try {
                 data = file.getBytes();
@@ -104,7 +110,13 @@ public class DocumentUploadService {
 
             String hash = hashFile(data);
             if (!seenHashes.add(hash)) {
-                results.add(new DocumentUploadResult(null, fileName, sizeBytes, false, "Duplicate file", 0));
+                results.add(new DocumentUploadResult(null, fileName, sizeBytes, false, "Duplicate file in batch", 0));
+                continue;
+            }
+
+            // Check against previously uploaded documents in the database
+            if (uploadedDocumentRepository.existsBySessionIdAndFileHash(sessionId, hash)) {
+                results.add(new DocumentUploadResult(null, fileName, sizeBytes, false, "File already uploaded previously", 0));
                 continue;
             }
 
