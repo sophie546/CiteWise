@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";  // ← ADDED useEffect
+import { useState, useEffect, useCallback, useRef } from "react";  // ← ADDED useCallback, useRef
 import ImportHeaderBar from "./ImportHeaderBar";
 import DataDisplayGrid from "./DataDisplayGrid";
 import DragDropZone from "../../rrl-upload/components/DragDropZone";
@@ -9,9 +9,10 @@ import UploadStatusBar from "../../rrl-upload/components/UploadStatusBar";
 const MAX_FILE_MB = 20;
 const STORAGE_SESSION_KEY = "citewise.sessionId";
 const STORAGE_CATALYST_KEY = "citewise.catalystData";
+const DUPLICATE_REMOVE_DELAY = 3000;
 
 function buildFileKey(file) {
-  return `${file.name.toLowerCase()}-${file.size}-${file.lastModified}`;
+  return `${file.name.toLowerCase()}-${file.size}`;
 }
 
 export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
@@ -38,8 +39,46 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
   const [uploadState, setUploadState] = useState("ready");
   const [statusMessage, setStatusMessage] = useState("Ready to upload");
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [duplicateToast, setDuplicateToast] = useState({ show: false, message: "" });
 
-  // ✅ ADD THIS useEffect - Restores session on page refresh
+  const triggerDuplicateToast = useCallback((filenames) => {
+    if (!filenames?.length) return;
+    let msg = "";
+    if (filenames.length === 1) {
+      msg = `"${filenames[0]}" will be removed from the list shortly.`;
+    } else {
+      msg = `${filenames.length} duplicate files will be removed shortly.`;
+    }
+    setDuplicateToast({ show: true, message: msg });
+    setTimeout(() => {
+      setDuplicateToast((prev) => ({ ...prev, show: false }));
+    }, 3000);
+  }, []);
+
+  // Ref so appendFiles always reads the latest uploaded names without stale closure
+  const uploadedFileNamesRef = useRef(new Set());
+
+  // Fetch already-uploaded file names from the backend on mount and after uploads
+  const fetchUploadedFiles = useCallback(async () => {
+    if (!sessionId) return;
+    try {
+      const res = await fetch(`/api/v1/documents/session/${sessionId}`);
+      if (res.ok) {
+        const docs = await res.json();
+        uploadedFileNamesRef.current = new Set(
+          docs.map((d) => d.fileName?.toLowerCase()).filter(Boolean)
+        );
+      }
+    } catch (err) {
+      // ignore fetch errors
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
+    fetchUploadedFiles();
+  }, [fetchUploadedFiles]);
+
+  // ✅ Restores session on page refresh
   useEffect(() => {
     const savedSessionId = localStorage.getItem(STORAGE_SESSION_KEY);
     const savedCatalystData = localStorage.getItem(STORAGE_CATALYST_KEY);
@@ -58,6 +97,18 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
       }
     }
   }, []); // Runs once on component mount
+
+  // Auto-remove duplicate items from the queue after a delay
+  useEffect(() => {
+    const dupeItems = fileQueue.filter((item) => item.status === "duplicate");
+    if (dupeItems.length === 0) return;
+
+    const timer = setTimeout(() => {
+      setFileQueue((prev) => prev.filter((item) => item.status !== "duplicate"));
+    }, DUPLICATE_REMOVE_DELAY);
+
+    return () => clearTimeout(timer);
+  }, [fileQueue]);
 
   const handleImport = async () => {
     const trimmed = workspaceId.trim();
@@ -141,12 +192,68 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
     if (!incomingFiles?.length) return;
     setUploadState("ready");
     setStatusMessage("Ready to upload");
+    const dupesList = [];
+
+    // Pre-emptively detect duplicates synchronously so we can trigger the toast immediately
+    const tempKeys = new Set(fileQueue.map((i) => i.key));
+    const tempNames = new Set(fileQueue.map((i) => i.name.toLowerCase()));
+
+    Array.from(incomingFiles).forEach((file) => {
+      const key = buildFileKey(file);
+      const nameLower = file.name.toLowerCase();
+
+      if (uploadedFileNamesRef.current.has(nameLower)) {
+        dupesList.push(file.name);
+      } else if (tempKeys.has(key) || tempNames.has(nameLower)) {
+        dupesList.push(file.name);
+      } else {
+        tempKeys.add(key);
+        tempNames.add(nameLower);
+      }
+    });
+
+    if (dupesList.length > 0) {
+      triggerDuplicateToast(dupesList);
+    }
+
     setFileQueue((prev) => {
       const next = [...prev];
       const seenKeys = new Set(prev.map((i) => i.key));
+      const seenNames = new Set(prev.map((i) => i.name.toLowerCase()));
+
       Array.from(incomingFiles).forEach((file) => {
         const key = buildFileKey(file);
-        const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+        const nameLower = file.name.toLowerCase();
+        const isPdf = file.type === "application/pdf" || nameLower.endsWith(".pdf");
+
+        // Already uploaded to backend — mark as duplicate in queue (will auto-remove)
+        if (uploadedFileNamesRef.current.has(nameLower)) {
+          next.push({
+            id: `${key}-${Math.random().toString(16).slice(2)}`,
+            key,
+            file,
+            name: file.name,
+            size: file.size,
+            status: "duplicate",
+            message: "Already uploaded previously",
+          });
+          return;
+        }
+
+        // Already in the current queue — mark as duplicate (will auto-remove)
+        if (seenKeys.has(key) || seenNames.has(nameLower)) {
+          next.push({
+            id: `${key}-${Math.random().toString(16).slice(2)}`,
+            key,
+            file,
+            name: file.name,
+            size: file.size,
+            status: "duplicate",
+            message: "Already in queue",
+          });
+          return;
+        }
+
         let status = "queued";
         let message = "Ready for upload";
         if (!isPdf) {
@@ -155,11 +262,10 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
         } else if (file.size > MAX_FILE_MB * 1024 * 1024) {
           status = "invalid";
           message = `Exceeds ${MAX_FILE_MB}MB`;
-        } else if (seenKeys.has(key)) {
-          status = "duplicate";
-          message = "Duplicate";
         }
-        if (!seenKeys.has(key)) seenKeys.add(key);
+
+        seenKeys.add(key);
+        seenNames.add(nameLower);
         next.push({
           id: `${key}-${Math.random().toString(16).slice(2)}`,
           key,
@@ -208,19 +314,42 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
       const results = payload?.data?.results || [];
       const accepted = payload?.data?.acceptedFiles || 0;
       const failed = payload?.data?.failedFiles || 0;
+
       setUploadState(failed > 0 ? "warning" : "success");
       setStatusMessage(
         failed > 0 ? `${accepted} uploaded, ${failed} failed.` : `${accepted} file(s) uploaded.`
       );
+
+      const serverDupes = [];
       setFileQueue((prev) =>
         prev.map((item) => {
+          if (item.status !== "uploading") return item;
           const match = results.find((r) => r.fileName === item.name);
-          if (!match) return item.status === "uploading" ? { ...item, status: "failed", message: "No response" } : item;
-          return { ...item, status: match.success ? "uploaded" : "failed", message: match.message };
+          if (!match) return { ...item, status: "failed", message: "No response received" };
+          
+          // Server rejected as duplicate → show as duplicate (will auto-remove)
+          const msg = match.message?.toLowerCase() || "";
+          const isDupe = !match.success && (msg.includes("already uploaded") || msg.includes("duplicate"));
+          if (isDupe) {
+            serverDupes.push(item.name);
+          }
+          return {
+            ...item,
+            status: isDupe ? "duplicate" : match.success ? "uploaded" : "failed",
+            message: isDupe ? "Duplicate — removing from queue" : match.message,
+          };
         })
       );
-      // Proceed automatically if upload succeeded fully
-      if (failed === 0 && accepted > 0) {
+
+      if (serverDupes.length > 0) {
+        triggerDuplicateToast(serverDupes);
+      }
+
+      // Refresh ref so future selections detect newly uploaded files immediately
+      await fetchUploadedFiles();
+
+      // Proceed to AI Assessment tab if at least one file was successfully accepted
+      if (accepted > 0) {
         setShowSuccessToast(true);
         setTimeout(() => {
           onProceed?.();
@@ -254,6 +383,62 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
   return (
     <div style={{ maxWidth: 1280, width: "100%", margin: "0 auto", padding: "24px 32px", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
       {styleInject}
+
+      {duplicateToast.show && (
+        <div style={{
+          position: "fixed",
+          top: "24px",
+          right: "24px",
+          zIndex: 10000,
+          background: "rgba(30, 28, 25, 0.9)",
+          backdropFilter: "blur(8px)",
+          border: "1px solid rgba(217, 138, 33, 0.4)",
+          borderRadius: "12px",
+          padding: "1rem 1.5rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          boxShadow: "0 12px 32px rgba(0, 0, 0, 0.4), 0 0 15px rgba(217, 138, 33, 0.1)",
+          animation: "slideInToast 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+          maxWidth: "400px",
+        }}>
+          <div style={{
+            background: "rgba(217, 138, 33, 0.15)",
+            border: "1px solid #D98A21",
+            borderRadius: "50%",
+            width: "36px",
+            height: "36px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D98A21" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+            <span style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: 700,
+              fontSize: "0.9rem",
+              color: "#D98A21",
+            }}>
+              Duplicate File Detected
+            </span>
+            <span style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "0.8rem",
+              color: "rgba(240, 236, 230, 0.8)",
+              lineHeight: "1.4",
+            }}>
+              {duplicateToast.message}
+            </span>
+          </div>
+        </div>
+      )}
 
       {showSuccessToast && (
         <div style={{
@@ -491,6 +676,10 @@ const styleInject = (
     @keyframes fillProgress {
       from { width: 0%; }
       to { width: 100%; }
+    }
+    @keyframes slideInToast {
+      from { opacity: 0; transform: translateX(50px) scale(0.95); }
+      to { opacity: 1; transform: translateX(0) scale(1); }
     }
   `}} />
 );

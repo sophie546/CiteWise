@@ -64,12 +64,79 @@ export default function DocumentActiveCard({
   onNavigate,
   onApprovalToggle,
 }) {
-  const doc = documents[currentIndex] || {
-    name: "Document_001.pdf",
-    size: "2.4 MB",
-    pages: 15,
-    approved: false,
-  };
+  const hasDocs = documents.length > 0;
+
+  if (!hasDocs) {
+    return (
+      <div
+        style={{
+          background: "#1E1C19",
+          border: "1px solid #3A3630",
+          borderRadius: "16px",
+          padding: 0,
+          display: "flex",
+          flexDirection: "column",
+          boxShadow: "0 8px 30px rgba(0, 0, 0, 0.25)",
+          overflow: "hidden",
+        }}
+      >
+        {/* Header: No documents */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 0,
+            padding: "1.125rem 1.5rem",
+            background: "rgba(0, 0, 0, 0.15)",
+            borderBottom: "1px solid #3A3630",
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "15px",
+              fontWeight: "700",
+              color: "#8a8278",
+            }}
+          >
+            No documents uploaded
+          </span>
+        </div>
+
+        <div style={{ padding: "2rem 1.5rem", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+          <div style={{
+            width: "48px",
+            height: "48px",
+            borderRadius: "50%",
+            background: "rgba(217, 138, 33, 0.1)",
+            border: "1px solid rgba(217, 138, 33, 0.2)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#D98A21"
+          }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="12" y1="18" x2="12" y2="12"/>
+              <line x1="9" y1="15" x2="15" y2="15"/>
+            </svg>
+          </div>
+          <span style={{
+            fontFamily: "'Poppins', sans-serif",
+            fontSize: "0.85rem",
+            color: "#8a8278",
+            lineHeight: "1.5",
+          }}>
+            Upload PDF candidates using the orange button to view and manage their AI assessments.
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  const doc = documents[currentIndex];
 
   return (
     <div
@@ -104,7 +171,7 @@ export default function DocumentActiveCard({
             color: "#D98A21",
           }}
         >
-          Document {currentIndex + 1} of {documents.length || 3}
+          Document {currentIndex + 1} of {documents.length}
         </span>
 
         <div style={{ display: "flex", gap: "14px" }}>

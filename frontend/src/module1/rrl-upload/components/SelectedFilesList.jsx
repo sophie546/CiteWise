@@ -5,12 +5,12 @@ function formatFileSize(bytes) {
 }
 
 const statusConfig = {
-  queued:    { label: "Ready",     tone: "neutral", color: "#D98A21", bg: "rgba(217, 138, 33, 0.12)" },
-  uploading: { label: "Uploading", tone: "neutral", color: "#D98A21", bg: "rgba(217, 138, 33, 0.18)" },
-  uploaded:  { label: "Uploaded",  tone: "success", color: "#4caf82", bg: "rgba(76,175,130,0.15)" },
-  failed:    { label: "Failed",    tone: "error",   color: "#e05555", bg: "rgba(224,85,85,0.15)" },
-  invalid:   { label: "Rejected",  tone: "error",   color: "#e05555", bg: "rgba(224,85,85,0.15)" },
-  duplicate: { label: "Duplicate", tone: "warn",    color: "#e0a835", bg: "rgba(224,168,53,0.15)" },
+  queued: { label: "Ready", color: "#D98A21", bg: "rgba(217, 138, 33, 0.12)" },
+  uploading: { label: "Uploading", color: "#D98A21", bg: "rgba(217, 138, 33, 0.18)" },
+  uploaded: { label: "Uploaded", color: "#4caf82", bg: "rgba(76,175,130,0.15)" },
+  failed: { label: "Failed", color: "#e05555", bg: "rgba(224,85,85,0.15)" },
+  invalid: { label: "Rejected", color: "#e05555", bg: "rgba(224,85,85,0.15)" },
+  duplicate: { label: "Duplicate", color: "#e0a835", bg: "rgba(224,168,53,0.15)" },
 };
 
 export default function SelectedFilesList({ files, onRemove }) {
@@ -61,7 +61,7 @@ export default function SelectedFilesList({ files, onRemove }) {
               borderRadius: "8px",
               padding: "0.5rem 0.75rem",
               gap: "0.5rem",
-              transition: "border-color 0.2s ease, transform 0.1s ease",
+              transition: "border-color 0.2s ease",
             }}
             onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#D98A21")}
             onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#3A3630")}
