@@ -3,6 +3,7 @@ import DocumentActiveCard from "./DocumentActiveCard";
 import QuickNavigationList from "./QuickNavigationList";
 import AIAssessmentPanel from "../../ai-assessment/components/AIAssessmentPanel";
 import ValidationSummaryFooter from "./ValidationSummaryFooter";
+import RrlUploadLayout from "../../../module1/rrl-upload/components/RrlUploadLayout";
 
 export default function ValidationDashboardLayout({ sessionId: propSessionId, onStepChange }) {
   const STORAGE_SESSION_KEY = "citewise.session_id";
@@ -32,6 +33,9 @@ export default function ValidationDashboardLayout({ sessionId: propSessionId, on
     averageScore: 0,
   });
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+
+  // State for modular Upload modal
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   const activeDoc = documents[currentIndex];
 
@@ -278,7 +282,7 @@ export default function ValidationDashboardLayout({ sessionId: propSessionId, on
   };
 
   const handleUploadNew = () => {
-    onStepChange(1);
+    setShowUploadModal(true);
   };
 
 const handleProceed = () => {
@@ -361,6 +365,10 @@ const handleProceed = () => {
       @keyframes fillProgress {
         to { width: 100%; }
       }
+      @keyframes slideInToast {
+        from { opacity: 0; transform: translateX(50px) scale(0.95); }
+        to { opacity: 1; transform: translateX(0) scale(1); }
+      }
     `}</style>
   );
 
@@ -374,6 +382,75 @@ const handleProceed = () => {
       }}
     >
       {styleInject}
+
+      {showUploadModal && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(14, 12, 10, 0.8)",
+          backdropFilter: "blur(12px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 9999,
+          animation: "fadeInToast 0.3s ease-out forwards",
+        }}>
+          <div style={{
+            background: "#1E1C19",
+            border: "1px solid #3A3630",
+            borderRadius: "24px",
+            padding: "2rem",
+            maxWidth: "900px",
+            width: "95%",
+            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6)",
+            animation: "scaleInToast 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
+            display: "flex",
+            flexDirection: "column",
+            gap: "1.5rem",
+          }}>
+            {/* Modal Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <h3 style={{ fontSize: "1.25rem", fontWeight: 700, color: "#e07b39", margin: 0 }}>
+                  Upload New RRL Documents
+                </h3>
+                <p style={{ fontSize: "0.8rem", color: "#8a8278", margin: "0.25rem 0 0" }}>
+                  Add candidates to the current assessment batch. Duplicates are auto-removed.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowUploadModal(false)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#8a8278",
+                  fontSize: "1.5rem",
+                  cursor: "pointer",
+                  transition: "color 0.2s ease",
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = "#f0ece6"}
+                onMouseLeave={(e) => e.currentTarget.style.color = "#8a8278"}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body: Reuse RrlUploadLayout to handle files queue, duplicate warnings, and server submission */}
+            <div style={{ overflow: "hidden" }}>
+              <RrlUploadLayout 
+                sessionId={resolvedSessionId} 
+                hideHeader={true}
+                onUploadComplete={async () => {
+                  await fetchDocuments();
+                  setTimeout(() => {
+                    setShowUploadModal(false);
+                  }, 2000);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {showSuccessToast && (
         <div style={{

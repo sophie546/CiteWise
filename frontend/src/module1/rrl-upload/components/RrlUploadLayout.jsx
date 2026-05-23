@@ -18,7 +18,7 @@ function generateSessionId() {
   return "session_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
 }
 
-export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComplete }) {
+export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComplete, hideHeader }) {
   const [sessionId, setSessionId] = useState(() => {
     if (propSessionId) return propSessionId;
     const stored = localStorage.getItem(STORAGE_SESSION_KEY);
@@ -368,42 +368,44 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
           </div>
         </div>
       )}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-end",
-          flexWrap: "wrap",
-          gap: "1rem",
-        }}
-      >
-        <div>
-          <h2 style={{ fontSize: "1.25rem", fontWeight: 700, color: "#e07b39", margin: 0 }}>
-            RRL document upload
-          </h2>
-          <p style={{ fontSize: "0.8rem", color: "#8a8278", margin: "0.25rem 0 0" }}>
-            Upload candidate Review of Related Literature PDFs for parsing.
-          </p>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-          <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "#8a8278" }}>Session ID</span>
-          <div
-            style={{
-              background: "#2a2724",
-              border: "1px solid #333028",
-              borderRadius: "8px",
-              color: "#f0ece6",
-              padding: "0.5rem 0.875rem",
-              fontSize: "0.875rem",
-              width: "260px",
-              fontFamily: "monospace",
-              wordBreak: "break-all",
-            }}
-          >
-            {sessionId || "Loading..."}
+      {!hideHeader && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-end",
+            flexWrap: "wrap",
+            gap: "1rem",
+          }}
+        >
+          <div>
+            <h2 style={{ fontSize: "1.25rem", fontWeight: 700, color: "#e07b39", margin: 0 }}>
+              RRL document upload
+            </h2>
+            <p style={{ fontSize: "0.8rem", color: "#8a8278", margin: "0.25rem 0 0" }}>
+              Upload candidate Review of Related Literature PDFs for parsing.
+            </p>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+            <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "#8a8278" }}>Session ID</span>
+            <div
+              style={{
+                background: "#2a2724",
+                border: "1px solid #333028",
+                borderRadius: "8px",
+                color: "#f0ece6",
+                padding: "0.5rem 0.875rem",
+                fontSize: "0.875rem",
+                width: "260px",
+                fontFamily: "monospace",
+                wordBreak: "break-all",
+              }}
+            >
+              {sessionId || "Loading..."}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
         <DragDropZone onFilesAdded={appendFiles} maxFileMB={MAX_FILE_MB} />
