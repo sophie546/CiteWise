@@ -2,11 +2,13 @@ package com.citewise.backend.module3.service;
 
 import com.citewise.backend.entity.SemanticBaseline;
 import com.citewise.backend.entity.UploadedDocument;
+import com.citewise.backend.module3.dto.CitationMetadata;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -15,18 +17,21 @@ import org.springframework.web.client.RestTemplate;
 import java.util.List;
 import java.util.UUID;
 
-@Slf4j
 @Service
 public class SynthesisN8nClient {
 
+    private static final Logger log = LoggerFactory.getLogger(SynthesisN8nClient.class);
+
     private final RestTemplate restTemplate;
+    private final CitationMetadataExtractor citationMetadataExtractor;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${n8n.synthesis.webhook.url:http://localhost:5678/webhook/citewise-synthesizer-v2}")
     private String synthesisWebhookUrl;
 
-    public SynthesisN8nClient(RestTemplate restTemplate) {
+    public SynthesisN8nClient(RestTemplate restTemplate, CitationMetadataExtractor citationMetadataExtractor) {
         this.restTemplate = restTemplate;
+        this.citationMetadataExtractor = citationMetadataExtractor;
     }
 
     public JsonNode callSynthesisWebhook(UUID sessionId, SemanticBaseline baseline, List<UploadedDocument> documents) {
@@ -65,7 +70,7 @@ public class SynthesisN8nClient {
             }
             payload.set("baseline", baselineNode);
 
-            // Build approvedDocuments array — prefer canonical fields required by the v2 workflow
+            // Build approvedDocuments array - prefer canonical fields required by the v2 workflow
             ArrayNode docsArray = objectMapper.createArrayNode();
             for (UploadedDocument doc : documents) {
                 if (doc == null || doc.getParsedText() == null || doc.getParsedText().isBlank()) continue;
@@ -75,17 +80,52 @@ public class SynthesisN8nClient {
                 docNode.put("filename", doc.getFileName() != null ? doc.getFileName() : "");
                 docNode.put("extracted_text", doc.getParsedText());
 
+                CitationMetadata citation = citationMetadataExtractor.extract(doc.getFileName(), doc.getParsedText());
+                log.info(
+                    "Citation metadata extracted for documentId={} filename={} arxivId={} doi={} authorDisplay={} authors={} year={} title={} source={} reliable={} warnings={}",
+                    doc.getId(),
+                    doc.getFileName(),
+                    citation.getArxivId(),
+                    citation.getDoi(),
+                    citation.getAuthorDisplay(),
+                    citation.getAuthors(),
+                    citation.getYear(),
+                    citation.getTitle(),
+                    citation.getJournal(),
+                    citation.isMetadataReliable(),
+                    citation.getWarnings()
+                );
+
                 ObjectNode meta = objectMapper.createObjectNode();
-                meta.put("author", "");
-                meta.putNull("year");
-                meta.put("title", doc.getFileName() != null ? doc.getFileName() : "");
-                meta.put("journal", "");
-                meta.put("volume", "");
-                meta.put("issue", "");
-                meta.put("pages", "");
-                meta.put("doi", "");
-                meta.put("url", "");
-                meta.put("publisher", "");
+                if (citation.getAuthorDisplay() != null && !citation.getAuthorDisplay().isBlank()) {
+                    meta.put("author", citation.getAuthorDisplay());
+                    meta.put("authorDisplay", citation.getAuthorDisplay());
+                } else {
+                    meta.putNull("author");
+                    meta.putNull("authorDisplay");
+                }
+                meta.set("authors", objectMapper.valueToTree(citation.getAuthors() != null ? citation.getAuthors() : List.of()));
+                if (citation.getYear() != null) {
+                    meta.put("year", citation.getYear());
+                } else {
+                    meta.putNull("year");
+                }
+                if (citation.getTitle() != null && !citation.getTitle().isBlank()) {
+                    meta.put("title", citation.getTitle());
+                } else {
+                    meta.putNull("title");
+                }
+                meta.put("journal", citation.getJournal() != null ? citation.getJournal() : "");
+                meta.put("volume", citation.getVolume() != null ? citation.getVolume() : "");
+                meta.put("issue", citation.getIssue() != null ? citation.getIssue() : "");
+                meta.put("pages", citation.getPages() != null ? citation.getPages() : "");
+                meta.put("doi", citation.getDoi() != null ? citation.getDoi() : "");
+                meta.put("url", citation.getUrl() != null ? citation.getUrl() : "");
+                meta.put("arxivId", citation.getArxivId() != null ? citation.getArxivId() : "");
+                meta.put("publisher", citation.getPublisher() != null ? citation.getPublisher() : "");
+                meta.put("sourceType", citation.getSourceType() != null ? citation.getSourceType() : "");
+                meta.put("metadataReliable", citation.isMetadataReliable());
+                meta.set("warnings", objectMapper.valueToTree(citation.getWarnings() != null ? citation.getWarnings() : List.of()));
 
                 docNode.set("metadata", meta);
                 docsArray.add(docNode);

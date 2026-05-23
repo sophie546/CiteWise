@@ -8,23 +8,35 @@ import com.citewise.backend.module3.repository.GeneratedDraftRepository;
 import com.citewise.backend.repository.SemanticBaselineRepository;
 import com.citewise.backend.repository.UploadedDocumentRepository;
 import com.fasterxml.jackson.databind.JsonNode;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class RAGSynthesisService {
+
+    private static final Logger log = LoggerFactory.getLogger(RAGSynthesisService.class);
 
     private final GeneratedDraftRepository draftRepository;
     private final UploadedDocumentRepository documentRepository;
     private final SemanticBaselineRepository baselineRepository;
     private final SynthesisN8nClient synthesisN8nClient;
+
+    public RAGSynthesisService(
+        GeneratedDraftRepository draftRepository,
+        UploadedDocumentRepository documentRepository,
+        SemanticBaselineRepository baselineRepository,
+        SynthesisN8nClient synthesisN8nClient
+    ) {
+        this.draftRepository = draftRepository;
+        this.documentRepository = documentRepository;
+        this.baselineRepository = baselineRepository;
+        this.synthesisN8nClient = synthesisN8nClient;
+    }
 
     @Transactional
     public SynthesisResponseDto orchestrateDrafting(UUID sessionId) {
