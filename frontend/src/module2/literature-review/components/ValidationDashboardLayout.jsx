@@ -394,6 +394,7 @@ const handleProceed = () => {
           justifyContent: "center",
           zIndex: 9999,
           animation: "fadeInToast 0.3s ease-out forwards",
+          fontFamily: "'Poppins', sans-serif",
         }}>
           <div style={{
             background: "#1E1C19",
@@ -407,14 +408,15 @@ const handleProceed = () => {
             display: "flex",
             flexDirection: "column",
             gap: "1.5rem",
+            fontFamily: "'Poppins', sans-serif",
           }}>
             {/* Modal Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <h3 style={{ fontSize: "1.25rem", fontWeight: 700, color: "#e07b39", margin: 0 }}>
+                <h3 style={{ fontFamily: "'Poppins', sans-serif", fontSize: "1.25rem", fontWeight: 700, color: "#e07b39", margin: 0 }}>
                   Upload New RRL Documents
                 </h3>
-                <p style={{ fontSize: "0.8rem", color: "#8a8278", margin: "0.25rem 0 0" }}>
+                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: "0.8rem", color: "#8a8278", margin: "0.25rem 0 0" }}>
                   Add candidates to the current assessment batch. Duplicates are auto-removed.
                 </p>
               </div>

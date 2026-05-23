@@ -11,20 +11,25 @@ export default function UploadNewPDFButton({ onClick }) {
         borderRadius: "8px",
         padding: "12px 22px",
         cursor: "pointer",
-        transition: "background 0.2s ease, transform 0.1s ease",
+        transition: "background 0.2s ease, transform 0.15s ease, box-shadow 0.15s ease",
+        boxShadow: "0 0 0 rgba(216, 90, 48, 0)",
         flexShrink: 0,
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.background = "#e96439";
+        e.currentTarget.style.transform = "scale(1.06)";
+        e.currentTarget.style.boxShadow = "0 0 14px rgba(216, 90, 48, 0.45)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = "#D85A30";
+        e.currentTarget.style.transform = "scale(1)";
+        e.currentTarget.style.boxShadow = "0 0 0 rgba(216, 90, 48, 0)";
       }}
       onMouseDown={(e) => {
         e.currentTarget.style.transform = "scale(0.97)";
       }}
       onMouseUp={(e) => {
-        e.currentTarget.style.transform = "scale(1)";
+        e.currentTarget.style.transform = "scale(1.06)";
       }}
     >
       {/* Upload icon */}

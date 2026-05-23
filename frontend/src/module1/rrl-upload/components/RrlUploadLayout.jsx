@@ -305,7 +305,7 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
   const totalCount = fileQueue.length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "1rem", fontFamily: "'Poppins', sans-serif" }}>
       <style dangerouslySetInnerHTML={{
         __html: `
         @keyframes slideInToast {

@@ -174,20 +174,7 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
   };
 
   const overallScore = scores.overall !== null && scores.overall !== undefined ? Math.round(scores.overall) : 0;
-
-  // Derive a recommendation status from overallScore when none provided.
-  // Prevent showing 'RECOMMENDED' when score is 0.
-  const derivedStatus = overallScore === 0
-    ? 'NOT RECOMMENDED'
-    : overallScore >= 80
-      ? 'RECOMMENDED'
-      : overallScore >= 60
-        ? 'CONSIDER'
-        : overallScore >= 40
-          ? 'LOW RELEVANCE'
-          : 'NOT RECOMMENDED';
-
-  const displayStatus = overallScore === 0 ? 'NOT RECOMMENDED' : (recommendationStatus || derivedStatus);
+  const displayStatus = recommendationStatus ? String(recommendationStatus).trim() : "";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px", fontFamily: "'Poppins', sans-serif" }}>
@@ -256,17 +243,19 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
               {overallScore}
             </span>
           </div>
-          <span
-            style={{
-              fontFamily: "'Poppins', sans-serif",
-              fontSize: "13px",
-              fontWeight: "700",
-              color: displayStatus === 'RECOMMENDED' ? '#D98A21' : '#f0ece6',
-              textAlign: "center",
-            }}
-          >
-            {displayStatus}
-          </span>
+          {displayStatus && (
+            <span
+              style={{
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: "14px",
+                fontWeight: "700",
+                color: displayStatus.toUpperCase() === 'RECOMMENDED' ? '#D98A21' : '#f0ece6',
+                textAlign: "center",
+              }}
+            >
+              {displayStatus}
+            </span>
+          )}
         </div>
 
         {/* Score Bars */}
