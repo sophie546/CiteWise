@@ -103,8 +103,9 @@ const ScoreBar = ({ label, value }) => {
       <span
         style={{
           fontFamily: "'Poppins', sans-serif",
-          fontSize: "12px",
-          color: "#8a8278",
+          fontSize: "13px",
+          fontWeight: 500,
+          color: "#e0d7cc",
           whiteSpace: "nowrap",
         }}
       >
@@ -118,24 +119,26 @@ const ScoreBar = ({ label, value }) => {
           background: "rgba(255, 255, 255, 0.08)",
           borderRadius: "4px",
           overflow: "hidden",
+          border: "1px solid rgba(217, 138, 33, 0.1)",
         }}
       >
         <div
           style={{
             height: "100%",
             width: `${percent}%`,
-            background: "linear-gradient(90deg, #D98A21 0%, #D85A30 100%)",
-            borderRadius: "4px",
+            background: "#D85A30",
+            borderRadius: "3px",
             transition: "width 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
+            boxShadow: "0 0 12px rgba(217, 138, 33, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.2)",
           }}
         />
       </div>
 
       <span
         style={{
-          fontFamily: "'Geist Mono', monospace",
-          fontSize: "12px",
-          color: "#D98A21",
+          fontFamily: "'Poppins', sans-serif",
+          fontSize: "13px",
+          color: "#D85A30",
           fontWeight: "700",
           textAlign: "right",
         }}
@@ -147,93 +150,48 @@ const ScoreBar = ({ label, value }) => {
 };
 
 const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceLevel, relevanceLevel, mismatchFlags = [], weaknessFlags = [], validationFlags = [] }) => {
-  const renderFlagGroup = (title, flags, variant) => {
+  const renderFlagList = (flags, variant) => {
     if (!flags || flags.length === 0) return null;
 
-    const styles = FLAG_GROUP_STYLES[variant];
-
-    return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "8px",
-          flex: "1 1 240px",
-          minWidth: "0",
-        }}
-      >
-        <div
+    return flags.map((flag, idx) => {
+      const label = formatFlagLabel(flag);
+      return (
+        <li
+          key={`${variant}-${idx}-${String(flag)}`}
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            fontFamily: "'Geist Mono', monospace",
-            fontSize: "11px",
-            color: styles.labelColor,
-            letterSpacing: "0.02em",
+            fontFamily: "'Inter', sans-serif",
+            fontSize: "13px",
+            color: "#f0ece6",
+            lineHeight: 1.65,
+            marginBottom: "6px",
+            fontWeight: 400,
           }}
         >
-          <span
-            style={{
-              width: "8px",
-              height: "8px",
-              borderRadius: "999px",
-              background: styles.labelColor,
-              boxShadow: `0 0 0 3px ${styles.borderColor}`,
-              flexShrink: 0,
-            }}
-          />
-          {title}
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "8px",
-            alignItems: "flex-start",
-            minWidth: "0",
-          }}
-        >
-          {flags.map((flag, idx) => {
-            const label = formatFlagLabel(flag);
-            const isValidation = variant === "validation";
-
-            return (
-              <span
-                key={`${title}-${idx}-${String(flag)}`}
-                title={String(flag)}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  maxWidth: isValidation ? "100%" : "280px",
-                  minWidth: 0,
-                  padding: isValidation ? "5px 10px" : "4px 10px",
-                  borderRadius: "999px",
-                  fontFamily: "'Geist', sans-serif",
-                  fontSize: "12px",
-                  lineHeight: 1.3,
-                  color: styles.chipColor,
-                  background: styles.chipBackground,
-                  border: `1px solid ${styles.borderColor}`,
-                  whiteSpace: isValidation ? "nowrap" : "normal",
-                  overflow: "hidden",
-                  textOverflow: isValidation ? "ellipsis" : "clip",
-                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
-                }}
-              >
-                {label}
-              </span>
-            );
-          })}
-        </div>
-      </div>
-    );
+          {label}
+        </li>
+      );
+    });
   };
 
+  const overallScore = scores.overall !== null && scores.overall !== undefined ? Math.round(scores.overall) : 0;
+
+  // Derive a recommendation status from overallScore when none provided.
+  // Prevent showing 'RECOMMENDED' when score is 0.
+  const derivedStatus = overallScore === 0
+    ? 'NOT RECOMMENDED'
+    : overallScore >= 80
+      ? 'RECOMMENDED'
+      : overallScore >= 60
+        ? 'CONSIDER'
+        : overallScore >= 40
+          ? 'LOW RELEVANCE'
+          : 'NOT RECOMMENDED';
+
+  const displayStatus = overallScore === 0 ? 'NOT RECOMMENDED' : (recommendationStatus || derivedStatus);
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-      {/* Section Header (using second file's icon and style) */}
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px", fontFamily: "'Poppins', sans-serif" }}>
+      {/* Section Header */}
       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D98A21" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
           <circle cx="12" cy="12" r="10" />
@@ -255,57 +213,235 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
         </span>
       </div>
 
-      {/* Score Bars */}
+      {/* Top Section: Circular Score + Metric Bars */}
       <div
         style={{
           display: "flex",
-          flexDirection: "column",
-          gap: "18px",
+          gap: "60px",
+          alignItems: "flex-start",
         }}
       >
-        {METRICS.map(({ label, key }) => (
-          <ScoreBar key={key} label={label} value={scores[key]} />
-        ))}
+        {/* Circular Score */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "12px",
+            minWidth: "140px",
+            flexShrink: 0,
+            marginLeft: "25px",
+          }}
+        >
+          <div
+            style={{
+              width: "120px",
+              height: "120px",
+              borderRadius: "50%",
+              border: "10px solid #D85A30",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "rgba(217, 138, 33, 0.05)",
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: "48px",
+                fontWeight: "800",
+                color: "#ffffff",
+              }}
+            >
+              {overallScore}
+            </span>
+          </div>
+          <span
+            style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "13px",
+              fontWeight: "700",
+              color: displayStatus === 'RECOMMENDED' ? '#D98A21' : '#f0ece6',
+              textAlign: "center",
+            }}
+          >
+            {displayStatus}
+          </span>
+        </div>
+
+        {/* Score Bars */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "18px",
+            flex: 1,
+          }}
+        >
+          {METRICS.map(({ label, key }) => (
+            <ScoreBar key={key} label={label} value={scores[key]} />
+          ))}
+        </div>
       </div>
 
-      {/* Overall + recommendation area */}
+      {/* Bottom Section: 2x2 Grid */}
       <div
         style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: "20px",
-          marginTop: "6px",
-          flexWrap: "wrap",
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "16px",
         }}
       >
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: '1 1 320px', minWidth: 0 }}>
-          <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: '36px', fontWeight: 800, color: '#D98A21', lineHeight: 1 }}>
-            {scores.overall !== null && scores.overall !== undefined ? `${Math.round(scores.overall)}%` : '--'}
+        {/* Confidence Box */}
+        <div
+          style={{
+            padding: "20px",
+            borderRadius: "8px",
+            border: "1px solid #3A3630",
+            backgroundColor: "#1E1C19",
+            minHeight: "108px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "flex-start",
+            textAlign: "left",
+          }}
+        >
+          <div
+            style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "12px",
+              fontWeight: 700,
+              color: "#D98A21",
+              letterSpacing: "0.02em",
+              marginBottom: "10px",
+              width: "100%",
+              textAlign: "left",
+            }}
+          >
+            CONFIDENCE:
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-            <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '12px', color: '#8a8278' }}>Overall Score</div>
-            <div style={{ display: 'flex', gap: '8px', marginTop: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: "'Poppins', sans-serif", fontSize: '13px', fontWeight: 700, color: '#f0ece6', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{recommendationStatus || 'No recommendation'}</span>
-              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: '#8a8278' }}>Confidence: <strong style={{ color: '#D98A21', marginLeft: 6 }}>{confidenceLevel || 'Unknown'}</strong></span>
-              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: '#8a8278' }}>Relevance: <strong style={{ color: '#D98A21', marginLeft: 6 }}>{relevanceLevel || 'Unknown'}</strong></span>
-            </div>
+          <div
+            style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "30px",
+              fontWeight: "800",
+              color: "#f0ece6",
+              lineHeight: 1,
+              width: "100%",
+              textAlign: "center",
+            }}
+          >
+            {confidenceLevel || "Unknown"}
           </div>
         </div>
 
+        {/* Relevance Box */}
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: '12px',
-            flex: '1 1 360px',
-            minWidth: 0,
-            width: '100%',
+            padding: "20px",
+            borderRadius: "8px",
+            border: "1px solid #3A3630",
+            backgroundColor: "#1E1C19",
+            minHeight: "108px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "flex-start",
+            textAlign: "left",
           }}
         >
-          {renderFlagGroup('Mismatch', mismatchFlags, 'mismatch')}
-          {renderFlagGroup('Weakness', weaknessFlags, 'weakness')}
-          {renderFlagGroup('Validation', validationFlags, 'validation')}
+          <div
+            style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "12px",
+              fontWeight: 700,
+              color: "#D98A21",
+              letterSpacing: "0.02em",
+              marginBottom: "10px",
+              width: "100%",
+              textAlign: "left",
+            }}
+          >
+            RELEVANCE:
+          </div>
+          <div
+            style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "30px",
+              fontWeight: "800",
+              color: "#f0ece6",
+              lineHeight: 1,
+              width: "100%",
+              textAlign: "center",
+            }}
+          >
+            {relevanceLevel || "Unknown"}
+          </div>
+        </div>
+
+        {/* Weakness Box */}
+        <div
+          style={{
+            padding: "20px",
+            borderRadius: "8px",
+            border: "1px solid #3A3630",
+            backgroundColor: "rgba(0, 0, 0, 0.15)",
+          }}
+        >
+          <div
+            style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "12px",
+              fontWeight: 700,
+              color: "#D98A21",
+              letterSpacing: "0.02em",
+              marginBottom: "12px",
+            }}
+          >
+            WEAKNESS:
+          </div>
+          <ul
+            style={{
+              margin: 0,
+              paddingLeft: "22px",
+              listStyle: "disc",
+            }}
+          >
+            {renderFlagList(weaknessFlags, 'weakness')}
+          </ul>
+        </div>
+
+        {/* Validation Box */}
+        <div
+          style={{
+            padding: "20px",
+            borderRadius: "8px",
+            border: "1px solid #3A3630",
+            backgroundColor: "rgba(0, 0, 0, 0.15)",
+          }}
+        >
+          <div
+            style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "12px",
+              fontWeight: 700,
+              color: "#D98A21",
+              letterSpacing: "0.02em",
+              marginBottom: "12px",
+            }}
+          >
+            VALIDATION:
+          </div>
+          <ul
+            style={{
+              margin: 0,
+              paddingLeft: "22px",
+              listStyle: "disc",
+            }}
+          >
+            {renderFlagList(validationFlags, 'validation')}
+          </ul>
         </div>
       </div>
     </div>

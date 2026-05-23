@@ -3,6 +3,9 @@ import EvidenceExcerptList from './EvidenceExcerptList';
 import SemanticScoreDashboard from './SemanticScoreDashboard';
 import UploadNewPDFButton from './UploadNewPDFButton';
 
+const PANEL_HEADER_PADDING = '1.125rem 1.5rem';
+const PANEL_CONTENT_PADDING = '24px';
+
 const AIAssessmentPanel = ({
   documentId,
   insights: externalInsights,
@@ -203,10 +206,10 @@ const AIAssessmentPanel = ({
           overflow: 'hidden',
         }}
       >
-        <div style={{ padding: '1.125rem 1.5rem', background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3A3630' }}>
+        <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3A3630' }}>
           <PanelHeader />
         </div>
-        <div style={{ padding: '20px' }}>
+        <div style={{ padding: PANEL_CONTENT_PADDING }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', flexDirection: 'column', gap: '12px' }}>
             <svg
               width="48"
@@ -254,10 +257,10 @@ const AIAssessmentPanel = ({
           overflow: 'hidden',
         }}
       >
-        <div style={{ padding: '1.125rem 1.5rem', background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3A3630' }}>
+        <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3A3630' }}>
           <PanelHeader />
         </div>
-        <div style={{ padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
+        <div style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
           <div
             style={{
               fontFamily: "'Geist Mono', monospace",
@@ -291,10 +294,10 @@ const AIAssessmentPanel = ({
           overflow: 'hidden',
         }}
       >
-        <div style={{ padding: '1.125rem 1.5rem', background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3A3630' }}>
+        <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3A3630' }}>
           <PanelHeader />
         </div>
-        <div style={{ padding: '20px' }}>
+        <div style={{ padding: PANEL_CONTENT_PADDING }}>
           <div
             style={{
               background: 'rgba(0, 0, 0, 0.15)',
@@ -351,10 +354,10 @@ const AIAssessmentPanel = ({
           overflow: 'hidden',
         }}
       >
-        <div style={{ padding: '1.125rem 1.5rem', background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3A3630' }}>
+        <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3A3630' }}>
           <PanelHeader />
         </div>
-        <div style={{ padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', textAlign: 'center' }}>
+        <div style={{ padding: PANEL_CONTENT_PADDING, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '200px', textAlign: 'center' }}>
           <p
             style={{
               fontFamily: "'Geist Mono', monospace",
@@ -386,10 +389,10 @@ const AIAssessmentPanel = ({
         overflow: 'hidden',
       }}
     >
-      <div style={{ padding: '1.125rem 1.5rem', background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3A3630' }}>
+      <div style={{ padding: PANEL_HEADER_PADDING, background: 'rgba(0,0,0,0.15)', borderBottom: '1px solid #3A3630' }}>
         <PanelHeader />
       </div>
-      <div style={{ padding: '0px 20px 20px 20px' }}>
+      <div style={{ padding: `0 ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING} ${PANEL_CONTENT_PADDING}` }}>
         <EvidenceExcerptList excerpts={mappedData.excerpts} />
         <div style={{ height: '35px' }} />
         <SemanticScoreDashboard
