@@ -1,4 +1,6 @@
 export default function ApprovedSourceList({ documents, loading }) {
+  const guardedDocuments = documents.filter((doc) => shouldWarnAboutSource(doc));
+
   return (
     <div
       style={{
@@ -24,6 +26,14 @@ export default function ApprovedSourceList({ documents, loading }) {
       </span>
 
       <div style={{ height: "1px", background: "#3A3630" }} />
+      {!loading && guardedDocuments.length > 0 && (
+        <div style={styles.guardrailNotice}>
+          <span style={styles.guardrailTitle}>Synthesis guardrail active</span>
+          <span style={styles.guardrailText}>
+            {guardedDocuments.length} approved source{guardedDocuments.length === 1 ? "" : "s"} may be minimized or excluded during generation because of low relevance.
+          </span>
+        </div>
+      )}
 
       {loading ? (
         <div
@@ -123,6 +133,9 @@ export default function ApprovedSourceList({ documents, loading }) {
                   />
                 </svg>
               </div>
+              {shouldWarnAboutSource(doc) && (
+                <span style={styles.sourceWarning}>May be minimized</span>
+              )}
             </div>
           ))}
         </div>
@@ -130,3 +143,41 @@ export default function ApprovedSourceList({ documents, loading }) {
     </div>
   );
 }
+
+function shouldWarnAboutSource(doc) {
+  const score = Number(doc?.relevancyScore ?? doc?.overallScore);
+  const recommendation = String(doc?.recommendationStatus || "").trim().toLowerCase();
+  const relevance = String(doc?.relevanceLevel || "").trim().toLowerCase();
+  return (Number.isFinite(score) && score < 60)
+    || recommendation === "low relevance"
+    || relevance === "low";
+}
+
+const styles = {
+  guardrailNotice: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+    background: "rgba(216, 90, 48, 0.12)",
+    border: "1px solid rgba(216, 90, 48, 0.28)",
+    borderRadius: "8px",
+    padding: "10px 12px",
+  },
+  guardrailTitle: {
+    color: "#D98A21",
+    fontSize: "0.75rem",
+    fontWeight: 700,
+  },
+  guardrailText: {
+    color: "#f0ece6",
+    fontSize: "0.75rem",
+    lineHeight: 1.45,
+  },
+  sourceWarning: {
+    color: "#D98A21",
+    fontSize: "0.68rem",
+    fontWeight: 700,
+    whiteSpace: "nowrap",
+    marginLeft: "8px",
+  },
+};

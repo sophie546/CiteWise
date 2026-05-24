@@ -94,9 +94,22 @@ export default function ValidationDashboardLayout({ sessionId: propSessionId, on
         status: mapStatus(item.status),
         approved: item.approved ?? prev?.approved ?? false,
         relevancyScore: overallFromInsight ?? item.relevancyScore ?? null,
+        recommendationStatus: item.recommendationStatus ?? item.insight?.recommendationStatus ?? null,
+        relevanceLevel: item.relevanceLevel ?? item.insight?.relevanceLevel ?? null,
       };
     });
   };
+
+  useEffect(() => {
+    if (propSessionId && propSessionId !== resolvedSessionId) {
+      setResolvedSessionId(propSessionId);
+      setDocuments([]);
+      setCurrentIndex(0);
+      setActiveInsights(null);
+      setIsInsightsLoading(false);
+      setInsightsPollExhausted(false);
+    }
+  }, [propSessionId, resolvedSessionId]);
 
   const fetchDocuments = useCallback(async () => {
     if (!resolvedSessionId) return;
@@ -364,48 +377,8 @@ const handleProceed = () => {
   
   const storageKey = `citewise_approved_docs_${resolvedSessionId}`;
   
-  // Get existing approved documents from localStorage
-  const existingApprovedStr = localStorage.getItem(storageKey);
-  let existingApproved = [];
-  
-  if (existingApprovedStr) {
-    try {
-      existingApproved = JSON.parse(existingApprovedStr);
-      console.log("Existing approved from localStorage:", existingApproved.map(d => d.name || d.fileName));
-    } catch (err) {
-      console.error("Error parsing existing docs:", err);
-    }
-  }
-  
-  // MERGE with reconciliation:
-  // 1) Keep existing docs that are outside current doc list.
-  // 2) For docs in current list, use ONLY the user's current approval state.
-  const mergedMap = new Map();
-
-  // Seed map from existing storage.
-  existingApproved.forEach(doc => {
-    const key = doc.id || doc.name || doc.fileName;
-    if (key) {
-      mergedMap.set(key, doc);
-    }
-  });
-
-  // Remove any current documents first to prevent stale approved entries.
-  currentDocKeys.forEach((key) => {
-    mergedMap.delete(key);
-  });
-
-  // Add back only docs that are currently approved by the user.
-  currentlyApproved.forEach(newDoc => {
-    const key = newDoc.id || newDoc.name || newDoc.fileName;
-    if (key) {
-      console.log("Adding NEW document:", newDoc.name || newDoc.fileName);
-      mergedMap.set(key, newDoc);
-    }
-  });
-  
-  const mergedApproved = Array.from(mergedMap.values());
-  console.log("FINAL MERGED approved documents:", mergedApproved.map(d => d.name || d.fileName));
+  const mergedApproved = currentlyApproved.filter((doc) => currentDocKeys.has(doc.id || doc.name || doc.fileName));
+  console.log("FINAL approved documents for current session:", mergedApproved.map(d => d.name || d.fileName));
   console.log("Total approved documents count:", mergedApproved.length);
   
   // Save merged list to localStorage

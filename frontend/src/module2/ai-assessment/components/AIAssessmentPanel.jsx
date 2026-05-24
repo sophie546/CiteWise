@@ -106,6 +106,7 @@ const AIAssessmentPanel = ({
   // Helper to map API data to the format expected by the new child components
   const getMappedData = () => {
     if (!resolvedInsights) return null;
+    const responseScores = resolvedInsights.scores || {};
     return {
       excerpts: Array.isArray(resolvedInsights.evidenceExcerpts)
         ? resolvedInsights.evidenceExcerpts.map((e) => ({
@@ -118,11 +119,11 @@ const AIAssessmentPanel = ({
           }))
         : [],
       scores: {
-        gapAlignment: resolvedInsights.gapAlignmentScore ?? resolvedInsights.gapAlignment ?? 0,
-        methodology: resolvedInsights.methodologyScore ?? resolvedInsights.methodology ?? 0,
-        theoretical: resolvedInsights.theoreticalScore ?? resolvedInsights.theory ?? 0,
-        citation: resolvedInsights.citationScore ?? resolvedInsights.citationQuality ?? 0,
-        overall: resolvedInsights.overallScore ?? resolvedInsights.overall ?? resolvedInsights.averageOverallScore ?? null,
+        gapAlignment: resolvedInsights.gapAlignmentScore ?? resolvedInsights.gapAlignment ?? responseScores.gapAlignment ?? responseScores.gapAlignmentScore ?? 0,
+        methodology: resolvedInsights.methodologyScore ?? resolvedInsights.methodology ?? responseScores.methodology ?? responseScores.methodologyScore ?? 0,
+        theoretical: resolvedInsights.theoreticalScore ?? resolvedInsights.theory ?? responseScores.theoretical ?? responseScores.theory ?? responseScores.theoreticalScore ?? responseScores.theoryScore ?? 0,
+        citation: resolvedInsights.citationScore ?? resolvedInsights.citationQuality ?? responseScores.citation ?? responseScores.citationQuality ?? responseScores.citationScore ?? 0,
+        overall: resolvedInsights.overallScore ?? resolvedInsights.overall ?? responseScores.overall ?? responseScores.overallScore ?? resolvedInsights.averageOverallScore ?? null,
       },
       recommendationStatus: resolvedInsights.recommendationStatus || resolvedInsights.recommendation || null,
       confidenceLevel: resolvedInsights.confidenceLevel || null,
