@@ -178,15 +178,12 @@ const HeroSection = ({ documents, onToggleApproval, onGenerateIntro, introText, 
                 color: i === 0 ? "white" : "rgba(255,255,255,0.65)",
                 fontSize: "0.9rem",
                 fontWeight: i === 0 ? "600" : "400",
-                cursor: "pointer",
+                cursor: "default",
                 transition: "all 0.3s ease",
                 animation: heroLoaded ? "fadeInDown 0.6s ease-out forwards" : "none",
                 opacity: heroLoaded ? 1 : 0,
                 animationDelay: `${0.1 + i * 0.1}s`,
               }}
-              onClick={() => i === 0 && handleButtonClick('nav-data-import')}
-              onMouseEnter={(e) => e.target.style.color = "white"}
-              onMouseLeave={(e) => e.target.style.color = i === 0 ? "white" : "rgba(255,255,255,0.65)"}
               >{link}</span>
             ))}
           </div>
@@ -196,9 +193,9 @@ const HeroSection = ({ documents, onToggleApproval, onGenerateIntro, introText, 
             style={{
               ...getButtonStyle('nav-get-started'),
               fontFamily: "'Poppins', sans-serif",
-              background: "white",
+              background: "#D85A30",
               border: "none",
-              color: "#0a0a0a",
+              color: "#f0ece6",
               padding: "10px 28px",
               borderRadius: "10px",
               fontWeight: "700",
@@ -214,12 +211,14 @@ const HeroSection = ({ documents, onToggleApproval, onGenerateIntro, introText, 
             onMouseEnter={(e) => {
               if (!clickedButton) {
                 e.target.style.transform = "translateY(-2px)"
+                e.target.style.background = "#e96439"
                 e.target.style.boxShadow = "0 12px 24px rgba(216,90,48,0.3)"
               }
             }}
             onMouseLeave={(e) => {
               if (!clickedButton) {
                 e.target.style.transform = "translateY(0)"
+                e.target.style.background = "#D85A30"
                 e.target.style.boxShadow = "none"
               }
             }}
@@ -229,8 +228,8 @@ const HeroSection = ({ documents, onToggleApproval, onGenerateIntro, introText, 
               <div style={{
                 width: "16px",
                 height: "16px",
-                border: "2px solid rgba(0,0,0,0.2)",
-                borderTop: "2px solid #D85A30",
+                border: "2px solid rgba(255,255,255,0.35)",
+                borderTop: "2px solid #ffffff",
                 borderRadius: "50%",
                 animation: "spin 0.6s linear infinite",
               }} />
