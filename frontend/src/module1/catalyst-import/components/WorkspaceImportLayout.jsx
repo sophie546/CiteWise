@@ -383,6 +383,7 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
       "citewise.uploadedDocs",
       "citewise_approved_docs_",
       "citewise_draft_",
+      "citewise_chosen_gap_",
     ];
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const key = localStorage.key(i);
@@ -393,6 +394,7 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
     localStorage.removeItem("citewise.sessionId");
     localStorage.removeItem("citewise.session_id");
     localStorage.removeItem(STORAGE_CATALYST_KEY);
+    localStorage.removeItem("citewise_chosen_gap_default");
     localStorage.removeItem("citewise.step");
     localStorage.removeItem("citewise.maxUnlockedStep");
     sessionStorage.clear();
@@ -563,6 +565,7 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
           isLoading={isLoading}
           error={error}
           hasAttempted={hasAttempted}
+          sessionId={sessionId}
         />
       </div>
 
