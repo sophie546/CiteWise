@@ -158,31 +158,7 @@ const AIAssessmentPanel = ({
         AI Assessment Panel
       </h2>
       <div style={{ display: 'flex', gap: '12px' }}>
-        <button
-          type="button"
-          onClick={handleAssess}
-          disabled={isAssessing}
-          style={{
-            background: 'transparent',
-            border: '1px solid #D85A30',
-            borderRadius: '20px',
-            padding: '6px 16px',
-            fontFamily: "'Geist Mono', monospace",
-            fontSize: '12px',
-            fontWeight: 500,
-            color: '#D98A21',
-            cursor: isAssessing ? 'not-allowed' : 'pointer',
-            transition: 'all 0.2s ease',
-          }}
-          onMouseEnter={(e) => {
-            if (!isAssessing) e.currentTarget.style.background = 'rgba(216,90,48,0.06)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent';
-          }}
-        >
-          {isAssessing ? 'Assessing...' : 'Assess PDF'}
-        </button>
+
         <UploadNewPDFButton onClick={onUploadClick || onUploadNew} />
       </div>
     </div>

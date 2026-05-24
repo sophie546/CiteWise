@@ -153,7 +153,7 @@ public class DocumentAnalysisController {
 
                 summaries.add(new DocumentSummaryDto(
                         doc.getId(), doc.getFileName(), doc.getSizeBytes(),
-                    "complete", relevancy, gap, method, theory, citation
+                    "complete", relevancy, gap, method, theory, citation, doc.isApproved()
                 ));
             } else {
                 String status = "processing";
@@ -162,7 +162,7 @@ public class DocumentAnalysisController {
                 }
                 summaries.add(new DocumentSummaryDto(
                         doc.getId(), doc.getFileName(), doc.getSizeBytes(),
-                    status, null, null, null, null, null
+                    status, null, null, null, null, null, doc.isApproved()
                 ));
             }
         }

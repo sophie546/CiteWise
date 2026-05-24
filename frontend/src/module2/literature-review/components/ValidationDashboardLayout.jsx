@@ -70,7 +70,7 @@ export default function ValidationDashboardLayout({ sessionId: propSessionId, on
         size: formatBytes(item.sizeBytes),
         pages: prev?.pages ?? "-",
         status: mapStatus(item.status),
-        approved: prev?.approved ?? false,
+        approved: item.approved ?? prev?.approved ?? false,
         relevancyScore: overallFromInsight ?? item.relevancyScore ?? null,
       };
     });
@@ -200,10 +200,11 @@ export default function ValidationDashboardLayout({ sessionId: propSessionId, on
   }, [activeDoc?.id, resolvedSessionId]);
 
   useEffect(() => {
-    const approved = documents.filter((doc) => doc.approved).length;
-    const scored = documents.filter((doc) => typeof doc.relevancyScore === "number");
-    const averageScore = scored.length
-      ? scored.reduce((sum, doc) => sum + doc.relevancyScore, 0) / scored.length
+    const approvedDocs = documents.filter((doc) => doc.approved);
+    const approved = approvedDocs.length;
+    const scoredApproved = approvedDocs.filter((doc) => typeof doc.relevancyScore === "number");
+    const averageScore = scoredApproved.length
+      ? scoredApproved.reduce((sum, doc) => sum + doc.relevancyScore, 0) / scoredApproved.length
       : 0;
     setBatchStats({
       approvedCount: approved,
@@ -241,10 +242,16 @@ export default function ValidationDashboardLayout({ sessionId: propSessionId, on
 
       if (response.ok) {
         const data = await response.json();
+        const approvedDocs = updatedDocs.filter((d) => d.approved);
+        const scoredApproved = approvedDocs.filter((d) => typeof d.relevancyScore === "number");
+        const avgScore = scoredApproved.length
+          ? scoredApproved.reduce((sum, d) => sum + d.relevancyScore, 0) / scoredApproved.length
+          : 0;
+
         setBatchStats({
           approvedCount: data.batchStats.approvedCount,
           totalCount: updatedDocs.length,
-          averageScore: data.batchStats.averageScore,
+          averageScore: avgScore,
         });
       }
     } catch (err) {

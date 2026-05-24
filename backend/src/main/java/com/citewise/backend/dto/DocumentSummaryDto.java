@@ -11,6 +11,8 @@ public class DocumentSummaryDto {
     private Double theoreticalScore;
     private Double citationScore;
 
+    private Boolean approved;
+
     public DocumentSummaryDto() {}
 
     public DocumentSummaryDto(Long id, String fileName, Long sizeBytes, String status,
@@ -26,6 +28,23 @@ public class DocumentSummaryDto {
         this.methodologyScore = methodologyScore;
         this.theoreticalScore = theoreticalScore;
         this.citationScore = citationScore;
+        this.approved = false;
+    }
+
+    public DocumentSummaryDto(Long id, String fileName, Long sizeBytes, String status,
+                              Double relevancyScore, Double gapAlignmentScore,
+                              Double methodologyScore, Double theoreticalScore,
+                              Double citationScore, Boolean approved) {
+        this.id = id;
+        this.fileName = fileName;
+        this.sizeBytes = sizeBytes;
+        this.status = status;
+        this.relevancyScore = relevancyScore;
+        this.gapAlignmentScore = gapAlignmentScore;
+        this.methodologyScore = methodologyScore;
+        this.theoreticalScore = theoreticalScore;
+        this.citationScore = citationScore;
+        this.approved = approved;
     }
 
     public Long getId() { return id; }
@@ -54,4 +73,7 @@ public class DocumentSummaryDto {
 
     public Double getCitationScore() { return citationScore; }
     public void setCitationScore(Double citationScore) { this.citationScore = citationScore; }
+
+    public Boolean getApproved() { return approved; }
+    public void setApproved(Boolean approved) { this.approved = approved; }
 }

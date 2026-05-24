@@ -53,7 +53,7 @@
       }
     }, [generatedContent, references, sessionId]);
 
-    // Fetch approved documents - ACCUMULATE instead of replace
+      // Fetch approved documents
     useEffect(() => {
       if (!sessionId) {
         setLoading(false);
@@ -63,22 +63,23 @@
       const loadApprovedDocuments = async () => {
         setLoading(true);
         
-        // Get existing approved documents from localStorage first
-        let existingDocs = [];
+        // Get existing approved documents from localStorage first to display immediately
+        let initialDocs = [];
         const storedApproved = localStorage.getItem(DOCS_STORAGE_KEY);
         
         if (storedApproved) {
           try {
-            existingDocs = JSON.parse(storedApproved);
-            console.log("Existing approved documents from localStorage:", existingDocs);
+            initialDocs = JSON.parse(storedApproved);
+            setApprovedDocuments(initialDocs);
+            console.log("Initial approved documents from localStorage:", initialDocs);
           } catch (err) {
             console.error("Error parsing stored approved docs:", err);
           }
         }
         
-        // Fetch current approved documents from Module 2
+        // Fetch current approved documents from API to get the absolute source of truth
         try {
-          console.log("Fetching current approved documents from Module 2...");
+          console.log("Fetching up-to-date documents from session API...");
           const response = await fetch(`/api/v1/documents/session/${sessionId}`, {
             headers: {
               'X-Session-Id': sessionId,
@@ -90,49 +91,15 @@
           }
           
           const data = await response.json();
-          console.log("API response data (all documents):", data);
+          const approvedDocs = data.filter(doc => doc.approved === true);
           
-          // Get newly approved documents
-          const newlyApproved = data.filter(doc => {
-            return doc.approved === true || doc.status === "complete";
-          });
+          console.log("Current approved documents from API:", approvedDocs);
+          setApprovedDocuments(approvedDocs);
           
-          console.log("Newly approved documents from Module 2:", newlyApproved);
-          
-          // MERGE: Combine existing docs with new docs, avoid duplicates
-          const mergedDocs = [...existingDocs];
-          
-          newlyApproved.forEach(newDoc => {
-            // Check if document already exists (by id or fileName)
-            const exists = mergedDocs.some(existing => 
-              existing.id === newDoc.id || 
-              existing.fileName === newDoc.fileName
-            );
-            
-            if (!exists) {
-              console.log("Adding new document:", newDoc.fileName);
-              mergedDocs.push(newDoc);
-            } else {
-              console.log("Document already exists, skipping:", newDoc.fileName);
-            }
-          });
-          
-          console.log("Merged approved documents:", mergedDocs);
-          setApprovedDocuments(mergedDocs);
-          
-          // Save merged list back to localStorage
-          if (mergedDocs.length > 0) {
-            localStorage.setItem(DOCS_STORAGE_KEY, JSON.stringify(mergedDocs));
-          }
-          
+          // Save up-to-date approved list back to localStorage
+          localStorage.setItem(DOCS_STORAGE_KEY, JSON.stringify(approvedDocs));
         } catch (err) {
           console.error("Error fetching documents:", err);
-          // If API fails, keep existing docs
-          if (existingDocs.length > 0) {
-            setApprovedDocuments(existingDocs);
-          } else {
-            setApprovedDocuments([]);
-          }
         } finally {
           setLoading(false);
         }
@@ -147,26 +114,8 @@
         if (e.key === DOCS_STORAGE_KEY && e.newValue) {
           try {
             const newDocs = JSON.parse(e.newValue);
-            console.log("Storage updated - new approved documents from Module 2:", newDocs);
-            
-            // MERGE with existing documents instead of replacing
-            setApprovedDocuments(prevDocs => {
-              const merged = [...prevDocs];
-              newDocs.forEach(newDoc => {
-                const exists = merged.some(existing => 
-                  existing.id === newDoc.id || 
-                  existing.fileName === newDoc.fileName
-                );
-                if (!exists) {
-                  console.log("Adding new document from storage event:", newDoc.fileName);
-                  merged.push(newDoc);
-                }
-              });
-              console.log("After merge:", merged);
-              // Save merged back to localStorage
-              localStorage.setItem(DOCS_STORAGE_KEY, JSON.stringify(merged));
-              return merged;
-            });
+            console.log("Storage updated - replacing approved documents:", newDocs);
+            setApprovedDocuments(newDocs);
           } catch (err) {
             console.error("Error parsing storage update:", err);
           }
@@ -177,7 +126,7 @@
       return () => window.removeEventListener('storage', handleStorageChange);
     }, [DOCS_STORAGE_KEY]);
 
-    const startSynthesis = async () => {
+    const startSynthesis = async (isRegenerate = false) => {
       if (approvedDocuments.length === 0) {
         setStatusText("No approved documents available. Please approve documents in AI Assessment first.");
         return;
@@ -223,7 +172,7 @@
           .map((ref) => ref.trim())
           .filter((ref) => ref.length > 0);
 
-        const existingContent = generatedContent || "";
+        const existingContent = isRegenerate ? "" : (generatedContent || "");
         const newContent = payload.contentText || "";
         
         let mergedContent = newContent;
@@ -269,6 +218,9 @@
       setReferences([]);
       setStatusText("Ready to Generate");
       localStorage.removeItem(DRAFT_STORAGE_KEY);
+      
+      // Automatically trigger a clean synthesis
+      startSynthesis(true);
     };
 
     const handleExport = (format) => {
