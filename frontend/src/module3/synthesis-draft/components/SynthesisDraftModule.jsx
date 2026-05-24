@@ -5,7 +5,151 @@
   import GeneratedDraftDisplay from "./GeneratedDraftDisplay";
   import ExportDraftDropdown from "./ExportDraftDropdown";
 
-  // Rest of your code...
+  const crcTable = Array.from({ length: 256 }, (_, index) => {
+    let c = index;
+    for (let k = 0; k < 8; k++) {
+      c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    }
+    return c >>> 0;
+  });
+
+  const escapeXml = (value) =>
+    String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
+
+  const crc32 = (bytes) => {
+    let crc = 0xffffffff;
+    for (const byte of bytes) {
+      crc = crcTable[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+    }
+    return (crc ^ 0xffffffff) >>> 0;
+  };
+
+  const writeUint16 = (target, value) => {
+    target.push(value & 0xff, (value >>> 8) & 0xff);
+  };
+
+  const writeUint32 = (target, value) => {
+    target.push(value & 0xff, (value >>> 8) & 0xff, (value >>> 16) & 0xff, (value >>> 24) & 0xff);
+  };
+
+  const createZipBlob = (files) => {
+    const encoder = new TextEncoder();
+    const chunks = [];
+    const centralDirectory = [];
+    let offset = 0;
+
+    files.forEach(({ name, content }) => {
+      const nameBytes = encoder.encode(name);
+      const contentBytes = encoder.encode(content);
+      const checksum = crc32(contentBytes);
+      const localHeader = [];
+
+      writeUint32(localHeader, 0x04034b50);
+      writeUint16(localHeader, 20);
+      writeUint16(localHeader, 0);
+      writeUint16(localHeader, 0);
+      writeUint16(localHeader, 0);
+      writeUint16(localHeader, 0);
+      writeUint32(localHeader, checksum);
+      writeUint32(localHeader, contentBytes.length);
+      writeUint32(localHeader, contentBytes.length);
+      writeUint16(localHeader, nameBytes.length);
+      writeUint16(localHeader, 0);
+
+      chunks.push(new Uint8Array(localHeader), nameBytes, contentBytes);
+
+      const centralHeader = [];
+      writeUint32(centralHeader, 0x02014b50);
+      writeUint16(centralHeader, 20);
+      writeUint16(centralHeader, 20);
+      writeUint16(centralHeader, 0);
+      writeUint16(centralHeader, 0);
+      writeUint16(centralHeader, 0);
+      writeUint16(centralHeader, 0);
+      writeUint32(centralHeader, checksum);
+      writeUint32(centralHeader, contentBytes.length);
+      writeUint32(centralHeader, contentBytes.length);
+      writeUint16(centralHeader, nameBytes.length);
+      writeUint16(centralHeader, 0);
+      writeUint16(centralHeader, 0);
+      writeUint16(centralHeader, 0);
+      writeUint16(centralHeader, 0);
+      writeUint32(centralHeader, 0);
+      writeUint32(centralHeader, offset);
+      centralDirectory.push(new Uint8Array(centralHeader), nameBytes);
+
+      offset += localHeader.length + nameBytes.length + contentBytes.length;
+    });
+
+    const centralDirectorySize = centralDirectory.reduce((sum, chunk) => sum + chunk.length, 0);
+    const endRecord = [];
+    writeUint32(endRecord, 0x06054b50);
+    writeUint16(endRecord, 0);
+    writeUint16(endRecord, 0);
+    writeUint16(endRecord, files.length);
+    writeUint16(endRecord, files.length);
+    writeUint32(endRecord, centralDirectorySize);
+    writeUint32(endRecord, offset);
+    writeUint16(endRecord, 0);
+
+    return new Blob([...chunks, ...centralDirectory, new Uint8Array(endRecord)], {
+      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    });
+  };
+
+  const createDocxBlob = (text) => {
+    const paragraphs = String(text || "")
+      .split(/\n/)
+      .map((line) => {
+        const content = line.trim() ? escapeXml(line) : "";
+        return `<w:p><w:r><w:t xml:space="preserve">${content}</w:t></w:r></w:p>`;
+      })
+      .join("");
+
+    const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    ${paragraphs}
+    <w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr>
+  </w:body>
+</w:document>`;
+
+    return createZipBlob([
+      {
+        name: "[Content_Types].xml",
+        content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`,
+      },
+      {
+        name: "_rels/.rels",
+        content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`,
+      },
+      { name: "word/document.xml", content: documentXml },
+    ]);
+  };
+
+  const downloadBlob = (blob, filename) => {
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   export default function SynthesisDraftModule({ sessionId, onStepChange }) {
     const [approvedDocuments, setApprovedDocuments] = useState([]);
@@ -226,7 +370,8 @@
 
     const handleExport = async (format) => {
       setExportDropdownOpen(false);
-      const fullText = `${generatedContent}\n\nReferences\n${references.join("\n")}`;
+      const referencesText = references.join("\n\n");
+      const fullText = `${generatedContent}\n\nReferences\n${referencesText}`;
 
       if (format === "TXT") {
         const element = document.createElement("a");
@@ -240,14 +385,8 @@
       }
 
       if (format === "DOCX") {
-        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>CiteWise Synthesis</title><style>body{font-family: 'Poppins', sans-serif; color:#000; background:#fff;} pre{white-space:pre-wrap; font-size:12pt; color:#000;}</style></head><body><pre>${escapeHtml(fullText)}</pre></body></html>`;
-        const blob = new Blob([html], { type: "application/msword" });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = `citewise_synthesis.doc`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const blob = createDocxBlob(fullText);
+        downloadBlob(blob, "citewise_synthesis.docx");
         return;
       }
 
@@ -293,7 +432,8 @@
 
     const copyToClipboard = () => {
       setExportDropdownOpen(false);
-      const fullText = `${generatedContent}\n\nReferences\n${references.join("\n")}`;
+      const referencesText = references.join("\n\n");
+      const fullText = `${generatedContent}\n\nReferences\n${referencesText}`;
       navigator.clipboard.writeText(fullText);
     };
 

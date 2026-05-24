@@ -1,5 +1,3 @@
-import React from 'react';
-
 // Metrics definition using first file's keys, but labels from second file
 const METRICS = [
   { label: "Gap Alignment", key: "gapAlignment" },
@@ -59,27 +57,6 @@ const formatFlagLabel = (flag) => {
     .join(" ");
 
   return readable.charAt(0).toUpperCase() + readable.slice(1);
-};
-
-const FLAG_GROUP_STYLES = {
-  mismatch: {
-    labelColor: "#ff6b6b",
-    borderColor: "rgba(255,107,107,0.18)",
-    chipBackground: "#221212",
-    chipColor: "#ffb3b3",
-  },
-  weakness: {
-    labelColor: "#ffb86b",
-    borderColor: "rgba(255,184,107,0.14)",
-    chipBackground: "#241a0e",
-    chipColor: "#ffd39b",
-  },
-  validation: {
-    labelColor: "#8acbff",
-    borderColor: "rgba(138,203,255,0.14)",
-    chipBackground: "#0e2330",
-    chipColor: "#c7e6ff",
-  },
 };
 
 // Helper to normalise values: 0.75 → 75, 85 → 85
@@ -149,7 +126,15 @@ const ScoreBar = ({ label, value }) => {
   );
 };
 
-const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceLevel, relevanceLevel, mismatchFlags = [], weaknessFlags = [], validationFlags = [] }) => {
+const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceLevel, relevanceLevel, weaknessFlags = [], validationFlags = [] }) => {
+  const displayValidationFlags = validationFlags.filter((flag) => {
+    const label = String(flag ?? "");
+    if (getPercentage(scores.theoretical) === 0 && /^Theory\/Framework.*capped/i.test(label)) {
+      return false;
+    }
+    return true;
+  });
+
   const renderFlagList = (flags, variant) => {
     if (!flags || flags.length === 0) return null;
 
@@ -429,7 +414,7 @@ const SemanticScoreDashboard = ({ scores = {}, recommendationStatus, confidenceL
               listStyle: "disc",
             }}
           >
-            {renderFlagList(validationFlags, 'validation')}
+            {renderFlagList(displayValidationFlags, 'validation')}
           </ul>
         </div>
       </div>
