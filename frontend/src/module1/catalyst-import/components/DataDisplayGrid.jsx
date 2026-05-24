@@ -55,8 +55,9 @@ function getChosenGapStorageKey(sessionId) {
 }
 
 function saveChosenGap(sessionId, gapIndex, gapText) {
+  localStorage.setItem(getChosenGapStorageKey(sessionId), gapText);
   localStorage.setItem(
-    getChosenGapStorageKey(sessionId),
+    `${getChosenGapStorageKey(sessionId)}_meta`,
     JSON.stringify({
       gapIndex,
       gapText,
@@ -69,9 +70,10 @@ function loadChosenGap(sessionId) {
   const stored = localStorage.getItem(getChosenGapStorageKey(sessionId));
   if (!stored) return null;
   try {
-    return JSON.parse(stored);
+    const parsed = JSON.parse(stored);
+    return typeof parsed === "string" ? { gapText: parsed } : parsed;
   } catch {
-    return null;
+    return { gapText: stored };
   }
 }
 
@@ -79,7 +81,6 @@ export default function DataDisplayGrid({ catalystData, isLoading, error, sessio
   const gaps = useMemo(() => normalizeGaps(catalystData?.gaps), [catalystData?.gaps]);
   const storageKey = getChosenGapStorageKey(sessionId);
   const [selectedGap, setSelectedGap] = useState(null);
-  const [isChangingGap, setIsChangingGap] = useState(false);
 
   useEffect(() => {
     if (gaps.length === 1) {
@@ -104,7 +105,6 @@ export default function DataDisplayGrid({ catalystData, isLoading, error, sessio
 
   const handleGapSelect = (gapIndex, gapText) => {
     setSelectedGap({ gapIndex, gapText, storageKey });
-    setIsChangingGap(false);
     saveChosenGap(sessionId, gapIndex, gapText);
   };
 
@@ -164,8 +164,6 @@ export default function DataDisplayGrid({ catalystData, isLoading, error, sessio
           isList
           selectedGapIndex={selectedGapIndex}
           onGapSelect={handleGapSelect}
-          isChangingGap={isChangingGap}
-          onChangeGap={() => setIsChangingGap(true)}
         />
       </div>
     </div>
@@ -180,8 +178,6 @@ function DataColumn({
   isTitleRow,
   selectedGapIndex,
   onGapSelect,
-  isChangingGap,
-  onChangeGap,
 }) {
   const hasListValue = isList && Array.isArray(value) && value.length > 0;
   const hasPlainValue = !isList && value;
@@ -241,8 +237,6 @@ function DataColumn({
             gaps={value}
             selectedGapIndex={selectedGapIndex}
             onGapSelect={onGapSelect}
-            isChangingGap={isChangingGap}
-            onChangeGap={onChangeGap}
           />
         ) : hasPlainValue ? (
           <p
@@ -265,20 +259,7 @@ function DataColumn({
   );
 }
 
-function PrimaryGapSelector({ gaps, selectedGapIndex, onGapSelect, isChangingGap, onChangeGap }) {
-  const selectedGapText = selectedGapIndex != null ? gaps[selectedGapIndex] : "";
-  const shouldShowChooser = gaps.length > 1 && (selectedGapIndex == null || isChangingGap);
-
-  if (selectedGapText && !shouldShowChooser) {
-    return (
-      <SelectedGapDisplay
-        gapText={selectedGapText}
-        canChange={gaps.length > 1}
-        onChangeGap={onChangeGap}
-      />
-    );
-  }
-
+function PrimaryGapSelector({ gaps, selectedGapIndex, onGapSelect }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
       {gaps.length > 1 && (
@@ -291,12 +272,13 @@ function PrimaryGapSelector({ gaps, selectedGapIndex, onGapSelect, isChangingGap
             fontFamily: "'Poppins', sans-serif",
           }}
         >
-          Choose one research gap for this literature review.
+          Select the primary focus for scoring and synthesis. All imported gaps remain available.
         </p>
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
         {gaps.map((gap, idx) => {
+          const isSelected = selectedGapIndex === idx;
           return (
             <button
               key={`${idx}-${gap}`}
@@ -306,13 +288,15 @@ function PrimaryGapSelector({ gaps, selectedGapIndex, onGapSelect, isChangingGap
                 appearance: "none",
                 width: "100%",
                 textAlign: "left",
-                background: "rgba(0, 0, 0, 0.18)",
-                border: "1px solid rgba(240, 236, 230, 0.12)",
+                background: isSelected ? "rgba(217, 138, 33, 0.12)" : "rgba(0, 0, 0, 0.18)",
+                border: isSelected ? "1px solid #D98A21" : "1px solid rgba(240, 236, 230, 0.12)",
                 borderRadius: "10px",
                 color: "#f0ece6",
                 cursor: "pointer",
                 padding: "0.85rem",
-                boxShadow: "none",
+                boxShadow: isSelected
+                  ? "0 0 0 1px rgba(217, 138, 33, 0.18), 0 10px 24px rgba(217, 138, 33, 0.08)"
+                  : "none",
                 transition:
                   "border-color 0.2s ease, background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease",
                 fontFamily: "'Poppins', sans-serif",
@@ -322,10 +306,25 @@ function PrimaryGapSelector({ gaps, selectedGapIndex, onGapSelect, isChangingGap
                 e.currentTarget.style.transform = "translateY(-1px)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "rgba(240, 236, 230, 0.12)";
+                e.currentTarget.style.borderColor = isSelected ? "#D98A21" : "rgba(240, 236, 230, 0.12)";
                 e.currentTarget.style.transform = "translateY(0)";
               }}
             >
+              {isSelected && (
+                <span
+                  style={{
+                    display: "block",
+                    color: "#D98A21",
+                    fontSize: "0.68rem",
+                    fontWeight: 800,
+                    letterSpacing: "0.06em",
+                    marginBottom: "0.4rem",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Primary focus
+                </span>
+              )}
               <span style={{ display: "block", fontSize: "0.84rem", lineHeight: 1.55 }}>
                 {gap}
               </span>
@@ -333,38 +332,7 @@ function PrimaryGapSelector({ gaps, selectedGapIndex, onGapSelect, isChangingGap
           );
         })}
       </div>
-
-    </div>
-  );
-}
-
-function SelectedGapDisplay({ gapText, canChange, onChangeGap }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-      <div
-        style={{
-          background: "rgba(217, 138, 33, 0.1)",
-          border: "1px solid #D98A21",
-          borderRadius: "10px",
-          boxShadow: "0 0 0 1px rgba(217, 138, 33, 0.14), 0 10px 24px rgba(217, 138, 33, 0.06)",
-          color: "#f0ece6",
-          padding: "0.9rem",
-          fontFamily: "'Poppins', sans-serif",
-          fontSize: "0.86rem",
-          lineHeight: 1.6,
-        }}
-      >
-        {gapText}
-      </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "0.75rem",
-          flexWrap: "wrap",
-        }}
-      >
+      {selectedGapIndex != null && (
         <p
           style={{
             fontSize: "0.72rem",
@@ -374,29 +342,9 @@ function SelectedGapDisplay({ gapText, canChange, onChangeGap }) {
             fontFamily: "'Poppins', sans-serif",
           }}
         >
-          This selected gap is saved locally in your browser.
+          Selected gap is saved locally in your browser and marked as the primary focus.
         </p>
-        {canChange && (
-          <button
-            type="button"
-            onClick={onChangeGap}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "#D98A21",
-              cursor: "pointer",
-              fontFamily: "'Poppins', sans-serif",
-              fontSize: "0.74rem",
-              fontWeight: 700,
-              padding: "0.2rem 0",
-              textDecoration: "underline",
-              textUnderlineOffset: "3px",
-            }}
-          >
-            Change selected gap
-          </button>
-        )}
-      </div>
+      )}
     </div>
   );
 }
