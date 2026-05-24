@@ -1,4 +1,5 @@
   import { useState, useEffect } from "react";
+  import { jsPDF } from "jspdf";
   import SynthesisControlPanel from "./SynthesisControlPanel";
   import ApprovedSourceList from "./ApprovedSourceList";
   import GeneratedDraftDisplay from "./GeneratedDraftDisplay";
@@ -223,16 +224,71 @@
       startSynthesis(true);
     };
 
-    const handleExport = (format) => {
+    const handleExport = async (format) => {
       setExportDropdownOpen(false);
       const fullText = `${generatedContent}\n\nReferences\n${references.join("\n")}`;
-      const element = document.createElement("a");
-      const file = new Blob([fullText], { type: "text/plain" });
-      element.href = URL.createObjectURL(file);
-      element.download = `citewise_synthesis.${format.toLowerCase()}`;
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
+
+      if (format === "TXT") {
+        const element = document.createElement("a");
+        const file = new Blob([fullText], { type: "text/plain" });
+        element.href = URL.createObjectURL(file);
+        element.download = `citewise_synthesis.txt`;
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+        return;
+      }
+
+      if (format === "DOCX") {
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>CiteWise Synthesis</title><style>body{font-family: 'Poppins', sans-serif; color:#000; background:#fff;} pre{white-space:pre-wrap; font-size:12pt; color:#000;}</style></head><body><pre>${escapeHtml(fullText)}</pre></body></html>`;
+        const blob = new Blob([html], { type: "application/msword" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `citewise_synthesis.doc`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return;
+      }
+
+      if (format === "PDF") {
+        try {
+          const doc = new jsPDF({ unit: "pt", format: "letter" });
+          const margin = 72; // 1 inch
+          const pageWidth = doc.internal.pageSize.getWidth();
+          const pageHeight = doc.internal.pageSize.getHeight();
+          const usableWidth = pageWidth - margin * 2;
+
+          doc.setFont("Times", "normal");
+          doc.setFontSize(10);
+          doc.setTextColor(0, 0, 0);
+
+          const lines = doc.splitTextToSize(fullText, usableWidth);
+          const lineHeight = 12; // 10pt -> ~12pt line height
+          let cursorY = margin;
+
+          for (let i = 0; i < lines.length; i++) {
+            if (cursorY + lineHeight > pageHeight - margin) {
+              doc.addPage();
+              cursorY = margin;
+            }
+            doc.text(lines[i], margin, cursorY);
+            cursorY += lineHeight;
+          }
+
+          doc.save("citewise_synthesis.pdf");
+        } catch (err) {
+          console.error("PDF generation failed:", err);
+          const element = document.createElement("a");
+          const file = new Blob([fullText], { type: "text/plain" });
+          element.href = URL.createObjectURL(file);
+          element.download = `citewise_synthesis.pdf.txt`;
+          document.body.appendChild(element);
+          element.click();
+          document.body.removeChild(element);
+        }
+        return;
+      }
     };
 
     const copyToClipboard = () => {

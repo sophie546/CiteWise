@@ -40,7 +40,7 @@ export default function GeneratedDraftDisplay({ generationStatus, content, refer
 
   // Complete state - show the generated content
   return (
-    <div style={{ lineHeight: "1.7", fontSize: "0.95rem", color: "#f0ece6", maxWidth: "800px", margin: "0 auto", width: "100%" }}>
+    <div data-citewise-draft="true" style={{ lineHeight: "1.7", fontSize: "0.95rem", color: "#f0ece6", maxWidth: "800px", margin: "0 auto", width: "100%", fontFamily: "'Poppins', sans-serif" }}>
       {/* Display the generated content as HTML with line breaks */}
       <div style={{ whiteSpace: "pre-wrap" }}>
         {content || "No content generated yet."}

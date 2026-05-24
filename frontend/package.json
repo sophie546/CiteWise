@@ -13,7 +13,9 @@
     "dom": "^0.0.3",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "router": "^2.2.0"
+    "router": "^2.2.0",
+    "jspdf": "^2.5.1",
+    "html2canvas": "^1.4.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
