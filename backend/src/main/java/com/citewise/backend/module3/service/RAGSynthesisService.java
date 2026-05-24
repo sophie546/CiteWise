@@ -5,8 +5,10 @@ import com.citewise.backend.entity.UploadedDocument;
 import com.citewise.backend.module3.dto.SynthesisResponseDto;
 import com.citewise.backend.module3.entity.GeneratedDraft;
 import com.citewise.backend.module3.repository.GeneratedDraftRepository;
+import com.citewise.backend.repository.DocumentInsightRepository;
 import com.citewise.backend.repository.SemanticBaselineRepository;
 import com.citewise.backend.repository.UploadedDocumentRepository;
+import com.citewise.backend.entity.DocumentInsight;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,17 +25,20 @@ public class RAGSynthesisService {
 
     private final GeneratedDraftRepository draftRepository;
     private final UploadedDocumentRepository documentRepository;
+    private final DocumentInsightRepository documentInsightRepository;
     private final SemanticBaselineRepository baselineRepository;
     private final SynthesisN8nClient synthesisN8nClient;
 
     public RAGSynthesisService(
         GeneratedDraftRepository draftRepository,
         UploadedDocumentRepository documentRepository,
+        DocumentInsightRepository documentInsightRepository,
         SemanticBaselineRepository baselineRepository,
         SynthesisN8nClient synthesisN8nClient
     ) {
         this.draftRepository = draftRepository;
         this.documentRepository = documentRepository;
+        this.documentInsightRepository = documentInsightRepository;
         this.baselineRepository = baselineRepository;
         this.synthesisN8nClient = synthesisN8nClient;
     }
@@ -64,7 +69,30 @@ public class RAGSynthesisService {
                 .build();
         }
 
-        JsonNode n8nResponse = synthesisN8nClient.callSynthesisWebhook(sessionId, baseline, docsWithText);
+        List<SynthesisN8nClient.TieredSynthesisDocument> tieredDocs = docsWithText.stream()
+            .map(this::toTieredDocument)
+            .toList();
+        List<SynthesisN8nClient.TieredSynthesisDocument> usableDocs = tieredDocs.stream()
+            .filter(doc -> doc.tier() != SynthesisN8nClient.SourceTier.EXCLUDED)
+            .toList();
+
+        if (usableDocs.isEmpty()) {
+            long excludedCount = tieredDocs.stream()
+                .filter(doc -> doc.tier() == SynthesisN8nClient.SourceTier.EXCLUDED)
+                .count();
+            return SynthesisResponseDto.builder()
+                .sessionId(sessionId)
+                .success(false)
+                .status("NO_RELEVANT_SOURCES")
+                .message("No sufficiently relevant approved sources are available for synthesis. Review the approved documents in Module 2 and approve at least one source with fair, good, or excellent relevance to the CATalyst baseline.")
+                .meta(Map.of(
+                    "approvedDocumentCount", docsWithText.size(),
+                    "excludedSourceCount", excludedCount
+                ))
+                .build();
+        }
+
+        JsonNode n8nResponse = synthesisN8nClient.callSynthesisWebhook(sessionId, baseline, usableDocs);
 
         String contentText = n8nResponse.path("contentText").asText("");
         String referencesText = n8nResponse.path("referencesText").asText("");
@@ -129,8 +157,66 @@ public class RAGSynthesisService {
             .message(message)
             .build();
 
-        log.info("Saved synthesized draft {} for session {} (approvedDocs={})", draft.getId(), sessionId, docsWithText.size());
+        log.info("Saved synthesized draft {} for session {} (approvedDocs={}, usableDocs={})", draft.getId(), sessionId, docsWithText.size(), usableDocs.size());
         return resp;
+    }
+
+    private SynthesisN8nClient.TieredSynthesisDocument toTieredDocument(UploadedDocument document) {
+        DocumentInsight insight = documentInsightRepository.findByDocumentIdWithExcerpts(document.getId()).orElse(null);
+        SynthesisN8nClient.SourceTier tier = determineSourceTier(insight);
+        return new SynthesisN8nClient.TieredSynthesisDocument(document, insight, tier);
+    }
+
+    private SynthesisN8nClient.SourceTier determineSourceTier(DocumentInsight insight) {
+        Double overallScore = insight != null ? insight.getOverallScore() : null;
+        String recommendationStatus = insight != null ? insight.getRecommendationStatus() : null;
+        String relevanceLevel = insight != null ? insight.getRelevanceLevel() : null;
+        String mismatchFlagsJson = insight != null ? insight.getMismatchFlagsJson() : null;
+
+        if (scoreBelow(overallScore, 40)
+            || equalsIgnoreCase(recommendationStatus, "Low Relevance")
+            || equalsIgnoreCase(relevanceLevel, "Low")
+            || containsFlag(mismatchFlagsJson, "TOPIC_MISMATCH")) {
+            return SynthesisN8nClient.SourceTier.EXCLUDED;
+        }
+
+        if (scoreAtLeast(overallScore, 75)
+            || equalsIgnoreCase(recommendationStatus, "Recommended")
+            || equalsIgnoreCase(relevanceLevel, "High")) {
+            return SynthesisN8nClient.SourceTier.CORE;
+        }
+
+        if (scoreInRange(overallScore, 60, 75)
+            || equalsIgnoreCase(recommendationStatus, "Needs Review")
+            || equalsIgnoreCase(relevanceLevel, "Medium")) {
+            return SynthesisN8nClient.SourceTier.SUPPORTING;
+        }
+
+        if (scoreInRange(overallScore, 40, 60)) {
+            return SynthesisN8nClient.SourceTier.TANGENTIAL;
+        }
+
+        return SynthesisN8nClient.SourceTier.SUPPORTING;
+    }
+
+    private boolean scoreBelow(Double score, double threshold) {
+        return score != null && score < threshold;
+    }
+
+    private boolean scoreAtLeast(Double score, double threshold) {
+        return score != null && score >= threshold;
+    }
+
+    private boolean scoreInRange(Double score, double minInclusive, double maxExclusive) {
+        return score != null && score >= minInclusive && score < maxExclusive;
+    }
+
+    private boolean equalsIgnoreCase(String value, String expected) {
+        return value != null && expected.equalsIgnoreCase(value.trim());
+    }
+
+    private boolean containsFlag(String flagsJson, String flag) {
+        return flagsJson != null && flagsJson.toUpperCase(Locale.ROOT).contains(flag);
     }
 
     public ResponseEntity<byte[]> exportDraft(UUID draftId, String format) {

@@ -5,11 +5,13 @@ public class DocumentSummaryDto {
     private String fileName;
     private Long sizeBytes;
     private String status; // "processing", "complete", "no_insights"
-    private Double relevancyScore; // Average of all 4 rubric scores
+    private Double relevancyScore; // n8n overall score or official weighted fallback
     private Double gapAlignmentScore;
     private Double methodologyScore;
     private Double theoreticalScore;
     private Double citationScore;
+    private String recommendationStatus;
+    private String relevanceLevel;
 
     private Boolean approved;
 
@@ -76,4 +78,10 @@ public class DocumentSummaryDto {
 
     public Boolean getApproved() { return approved; }
     public void setApproved(Boolean approved) { this.approved = approved; }
+
+    public String getRecommendationStatus() { return recommendationStatus; }
+    public void setRecommendationStatus(String recommendationStatus) { this.recommendationStatus = recommendationStatus; }
+
+    public String getRelevanceLevel() { return relevanceLevel; }
+    public void setRelevanceLevel(String relevanceLevel) { this.relevanceLevel = relevanceLevel; }
 }

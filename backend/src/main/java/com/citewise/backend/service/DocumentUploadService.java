@@ -222,7 +222,7 @@ public class DocumentUploadService {
                     DocumentInsight insight = rubricScoringEngine.parseAIResponse(rawResponse, document.getId());
                     logPerf(workingDocument.getId(), workingDocument.getFileName(), "rubric_parse", parseStartNs);
                     if (insight != null) {
-                        // If n8n provided an explicit overall score, prefer it over any recomputed average.
+                        // If n8n provided an explicit overall score, keep it ahead of any backend fallback.
                         try {
                             JsonNode rootNode = objectMapper.readTree(rawResponse);
                             // look for overall in common names and nested containers
@@ -267,7 +267,7 @@ public class DocumentUploadService {
                                 if (Double.isNaN(normalized) || normalized < 0) normalized = 0.0;
                                 if (normalized > 100) normalized = 100.0;
                                 insight.setOverallScore(normalized);
-                                // avoid exposing the previously computed unweighted average
+                                // avoid exposing legacy averageOverallScore beside the n8n score
                                 insight.setAverageOverallScore(null);
                             }
                         } catch (Exception ex) {

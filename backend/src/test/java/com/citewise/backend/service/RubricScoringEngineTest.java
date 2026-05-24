@@ -9,8 +9,25 @@ public class RubricScoringEngineTest {
     @Test
     public void testCalculateOverallScore() {
         double overall = engine.calculateOverallScore(80, 70, 60, 90);
-        // expected = 80*0.4 + 70*0.25 + 60*0.2 + 90*0.15 = 32 + 17.5 + 12 + 13.5 = 75
-        assertEquals(75.0, overall, 0.0001);
+        // expected = 80*0.35 + 70*0.30 + 60*0.20 + 90*0.15 = 74.5
+        assertEquals(74.5, overall, 0.0001);
+    }
+
+    @Test
+    public void testProvidedOverallScoreIsPreserved() {
+        String json = """
+            {
+              "scores": {
+                "gapAlignment": 80,
+                "methodology": 70,
+                "theory": 60,
+                "citationQuality": 90,
+                "overall_score": 88
+              }
+            }
+            """;
+
+        assertEquals(88.0, engine.parseAIResponse(json, 1L).getOverallScore(), 0.0001);
     }
 
     @Test

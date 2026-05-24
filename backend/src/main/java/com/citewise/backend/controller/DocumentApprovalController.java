@@ -21,10 +21,14 @@ public class DocumentApprovalController {
     @PatchMapping("/{id}/approval")
     public ResponseEntity<ApiResponse<Map<String, Object>>> setApproval(
             @PathVariable Long id,
+            @RequestHeader(value = "X-Session-Id", required = false) String sessionId,
             @RequestBody Map<String, String> body
     ) {
         UploadedDocument doc = uploadedDocumentRepository.findById(id).orElse(null);
         if (doc == null) {
+            return ResponseEntity.notFound().build();
+        }
+        if (sessionId != null && !sessionId.isBlank() && !sessionId.equals(doc.getSessionId())) {
             return ResponseEntity.notFound().build();
         }
         String status = body.getOrDefault("status", "READY");

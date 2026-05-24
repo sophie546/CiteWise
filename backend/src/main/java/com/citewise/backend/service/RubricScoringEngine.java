@@ -15,7 +15,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.Collections;
-import java.util.stream.Collectors;
 
 @Component
 public class RubricScoringEngine {
@@ -35,7 +34,7 @@ public class RubricScoringEngine {
             // Read and normalize component scores (clamped 0-100)
             double gapAlignment = clampScore(normalizeScore(readScore(root, "gapAlignment", "gapAlignmentScore", "gap_alignment_score")));
             double methodology = clampScore(normalizeScore(readScore(root, "methodology", "methodologyScore", "methodology_score")));
-            double theoretical = clampScore(normalizeScore(readScore(root, "theory", "theoreticalScore", "theoretical_score", "theoryScore")));
+            double theoretical = clampScore(normalizeScore(readScore(root, "theory", "theoretical", "theoreticalScore", "theoretical_score", "theoryScore")));
             double citation = clampScore(normalizeScore(readScore(root, "citationQuality", "citationScore", "citation_quality", "citation_score")));
 
             DocumentInsight insight = new DocumentInsight();
@@ -62,11 +61,12 @@ public class RubricScoringEngine {
             insight.setWeaknessFlagsJson(toJsonSafe(weaknessFlags));
             insight.setValidationFlagsJson(toJsonSafe(validationFlags));
 
-            // provisional weights and computation
-            // TODO: Replace these provisional weights with official rubric when provided
-            double overall = calculateOverallScore(gapAlignment, methodology, theoretical, citation);
+            Double providedOverall = readOptionalScore(root, "overall", "overallScore", "overall_score");
+            double overall = providedOverall != null
+                ? clampScore(normalizeScore(providedOverall))
+                : calculateOverallScore(gapAlignment, methodology, theoretical, citation);
             insight.setOverallScore(overall);
-            insight.setAverageOverallScore((gapAlignment + methodology + theoretical + citation) / 4.0);
+            insight.setAverageOverallScore(null);
 
             // Read confidence from response if present (supports nested containers)
             String confidence = readText(root, "confidenceLevel", "confidence_level", "confidence");
@@ -105,9 +105,8 @@ public class RubricScoringEngine {
         }
     }
 
-    // Provisional weights - TODO: replace with teacher-provided rubric
-    private static final double WEIGHT_GAP = 0.40;
-    private static final double WEIGHT_METHOD = 0.25;
+    private static final double WEIGHT_GAP = 0.35;
+    private static final double WEIGHT_METHOD = 0.30;
     private static final double WEIGHT_THEORY = 0.20;
     private static final double WEIGHT_CITATION = 0.15;
 
@@ -214,10 +213,6 @@ public class RubricScoringEngine {
         return hasExcerpts || hasScores || hasSignals;
     }
 
-    private boolean isPositive(Double value) {
-        return value != null && value > 0;
-    }
-
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
     }
@@ -240,10 +235,16 @@ public class RubricScoringEngine {
 
     private double readScore(JsonNode root, String... fieldNames) {
         // Try root first, then common nested containers like 'scores', 'meta', 'analysis'
+        Double value = readOptionalScore(root, fieldNames);
+        return value != null ? value : 0.0;
+    }
+
+    private Double readOptionalScore(JsonNode root, String... fieldNames) {
         for (String field : fieldNames) {
             JsonNode node = root.path(field);
-            if (!node.isMissingNode() && !node.isNull() && node.isNumber()) {
-                return node.asDouble(0.0);
+            Double value = parseScoreNode(node);
+            if (value != null) {
+                return value;
             }
         }
         for (String container : List.of("scores", "meta", "analysis", "result")) {
@@ -251,13 +252,31 @@ public class RubricScoringEngine {
             if (c != null && c.isObject()) {
                 for (String field : fieldNames) {
                     JsonNode node = c.path(field);
-                    if (!node.isMissingNode() && !node.isNull() && node.isNumber()) {
-                        return node.asDouble(0.0);
+                    Double value = parseScoreNode(node);
+                    if (value != null) {
+                        return value;
                     }
                 }
             }
         }
-        return 0.0;
+        return null;
+    }
+
+    private Double parseScoreNode(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull()) {
+            return null;
+        }
+        if (node.isNumber()) {
+            return node.asDouble();
+        }
+        if (node.isTextual()) {
+            try {
+                return Double.parseDouble(node.asText().trim());
+            } catch (NumberFormatException ex) {
+                return null;
+            }
+        }
+        return null;
     }
 
     /** n8n may return 0–100 or 0–1; store consistently as 0–100. */

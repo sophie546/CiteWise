@@ -1,8 +1,11 @@
 package com.citewise.backend.module3.service;
 
+import com.citewise.backend.entity.DocumentInsight;
 import com.citewise.backend.entity.SemanticBaseline;
 import com.citewise.backend.entity.UploadedDocument;
+import com.citewise.backend.entity.EvidenceExcerpt;
 import com.citewise.backend.module3.dto.CitationMetadata;
+import com.citewise.backend.repository.DocumentInsightRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -24,20 +27,30 @@ public class SynthesisN8nClient {
 
     private final RestTemplate restTemplate;
     private final CitationMetadataExtractor citationMetadataExtractor;
+    private final DocumentInsightRepository documentInsightRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${n8n.synthesis.webhook.url:http://localhost:5678/webhook/citewise-synthesizer-v2}")
     private String synthesisWebhookUrl;
 
-    public SynthesisN8nClient(RestTemplate restTemplate, CitationMetadataExtractor citationMetadataExtractor) {
+    public SynthesisN8nClient(
+            RestTemplate restTemplate,
+            CitationMetadataExtractor citationMetadataExtractor,
+            DocumentInsightRepository documentInsightRepository) {
         this.restTemplate = restTemplate;
         this.citationMetadataExtractor = citationMetadataExtractor;
+        this.documentInsightRepository = documentInsightRepository;
     }
 
-    public JsonNode callSynthesisWebhook(UUID sessionId, SemanticBaseline baseline, List<UploadedDocument> documents) {
+    public JsonNode callSynthesisWebhook(UUID sessionId, SemanticBaseline baseline, List<TieredSynthesisDocument> documents) {
         try {
             ObjectNode payload = objectMapper.createObjectNode();
             payload.put("sessionId", sessionId.toString());
+            payload.put("synthesisInstructions",
+                "The CATalyst Title, Rationale, and Research Gap are the primary source of truth. "
+                + "Approved documents are supplementary. Use Core Sources as the main evidence, "
+                + "Supporting Sources cautiously, Tangential Sources only for brief background, "
+                + "and Excluded Sources not at all. Do not let a low-relevance approved document redirect the topic.");
 
             // Build baseline node
             ObjectNode baselineNode = objectMapper.createObjectNode();
@@ -72,13 +85,24 @@ public class SynthesisN8nClient {
 
             // Build approvedDocuments array - prefer canonical fields required by the v2 workflow
             ArrayNode docsArray = objectMapper.createArrayNode();
-            for (UploadedDocument doc : documents) {
+            ObjectNode tierSummary = objectMapper.createObjectNode();
+            tierSummary.put("core", documents.stream().filter(d -> d.tier() == SourceTier.CORE).count());
+            tierSummary.put("supporting", documents.stream().filter(d -> d.tier() == SourceTier.SUPPORTING).count());
+            tierSummary.put("tangential", documents.stream().filter(d -> d.tier() == SourceTier.TANGENTIAL).count());
+            payload.set("sourceTierSummary", tierSummary);
+
+            for (TieredSynthesisDocument tieredDocument : documents) {
+                UploadedDocument doc = tieredDocument.document();
                 if (doc == null || doc.getParsedText() == null || doc.getParsedText().isBlank()) continue;
                 ObjectNode docNode = objectMapper.createObjectNode();
                 // documentId as string
                 if (doc.getId() != null) docNode.put("documentId", String.valueOf(doc.getId()));
                 docNode.put("filename", doc.getFileName() != null ? doc.getFileName() : "");
                 docNode.put("extracted_text", doc.getParsedText());
+                docNode.put("sourceTier", tieredDocument.tier().payloadValue());
+                docNode.put("sourceUseGuidance", tieredDocument.tier().guidance());
+                DocumentInsight insight = fetchInsightWithExcerpts(doc, tieredDocument.insight());
+                addInsightFields(docNode, insight);
 
                 CitationMetadata citation = citationMetadataExtractor.extract(doc.getFileName(), doc.getParsedText());
                 log.info(
@@ -166,5 +190,119 @@ public class SynthesisN8nClient {
             log.error("Synthesis webhook call failed: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to call synthesis webhook: " + e.getMessage(), e);
         }
+    }
+
+    private DocumentInsight fetchInsightWithExcerpts(UploadedDocument doc, DocumentInsight fallback) {
+        if (doc == null || doc.getId() == null) {
+            return fallback;
+        }
+        return documentInsightRepository.findByDocumentIdWithExcerpts(doc.getId()).orElse(fallback);
+    }
+
+    private void addInsightFields(ObjectNode docNode, DocumentInsight insight) {
+        if (insight == null) {
+            return;
+        }
+        if (insight.getOverallScore() != null) {
+            docNode.put("overallScore", insight.getOverallScore());
+        }
+        if (insight.getRecommendationStatus() != null) {
+            docNode.put("recommendationStatus", insight.getRecommendationStatus());
+        }
+        if (insight.getConfidenceLevel() != null) {
+            docNode.put("confidenceLevel", insight.getConfidenceLevel());
+        }
+        if (insight.getRelevanceLevel() != null) {
+            docNode.put("relevanceLevel", insight.getRelevanceLevel());
+        }
+        if (insight.getMismatchFlagsJson() != null) {
+            docNode.put("mismatchFlagsJson", insight.getMismatchFlagsJson());
+        }
+        if (insight.getWeaknessFlagsJson() != null) {
+            docNode.put("weaknessFlagsJson", insight.getWeaknessFlagsJson());
+        }
+        docNode.set("mismatchFlags", parseJsonArray(insight.getMismatchFlagsJson()));
+        docNode.set("weaknessFlags", parseJsonArray(insight.getWeaknessFlagsJson()));
+
+        ObjectNode scores = objectMapper.createObjectNode();
+        putScore(scores, "gapAlignment", insight.getGapAlignmentScore());
+        putScore(scores, "methodology", insight.getMethodologyScore());
+        putScore(scores, "theory", insight.getTheoreticalScore());
+        putScore(scores, "citationQuality", insight.getCitationScore());
+        putScore(scores, "overall", insight.getOverallScore());
+        docNode.set("scores", scores);
+
+        ArrayNode evidenceArray = docNode.putArray("evidenceExcerpts");
+        if (insight.getEvidenceExcerpts() == null) {
+            return;
+        }
+        for (EvidenceExcerpt excerpt : insight.getEvidenceExcerpts()) {
+            ObjectNode excerptNode = objectMapper.createObjectNode();
+            excerptNode.put("quoteText", excerpt.getQuoteText() != null ? excerpt.getQuoteText() : "");
+            if (excerpt.getPageNumber() != null) {
+                excerptNode.put("pageNumber", excerpt.getPageNumber());
+            }
+            excerptNode.put("relevanceLevel", excerpt.getRelevanceLevel() != null ? excerpt.getRelevanceLevel() : "");
+            excerptNode.put("criterion", excerpt.getCriterion() != null ? excerpt.getCriterion() : "");
+            excerptNode.put("evidenceType", excerpt.getEvidenceType() != null ? excerpt.getEvidenceType() : "");
+            if (excerpt.getDisplayOrder() != null) {
+                excerptNode.put("displayOrder", excerpt.getDisplayOrder());
+            }
+            evidenceArray.add(excerptNode);
+        }
+    }
+
+    private void putScore(ObjectNode node, String field, Double score) {
+        if (score != null) {
+            node.put(field, score);
+        }
+    }
+
+    private ArrayNode parseJsonArray(String json) {
+        ArrayNode array = objectMapper.createArrayNode();
+        if (json == null || json.isBlank()) {
+            return array;
+        }
+        try {
+            JsonNode parsed = objectMapper.readTree(json);
+            if (parsed.isArray()) {
+                for (JsonNode item : parsed) {
+                    array.add(item.isTextual() ? item.asText() : item.toString());
+                }
+            }
+        } catch (Exception e) {
+            for (String flag : json.split("\\s*,\\s*|\\s*;\\s*")) {
+                if (!flag.isBlank()) {
+                    array.add(flag.trim());
+                }
+            }
+        }
+        return array;
+    }
+
+    public enum SourceTier {
+        CORE("Core Source", "Use as main synthesis evidence."),
+        SUPPORTING("Supporting Source", "Use cautiously as supporting evidence."),
+        TANGENTIAL("Tangential Source", "Do not center the generated introduction on this source; use only for broad background if needed."),
+        EXCLUDED("Excluded Source", "Do not include this document text as synthesis evidence.");
+
+        private final String payloadValue;
+        private final String guidance;
+
+        SourceTier(String payloadValue, String guidance) {
+            this.payloadValue = payloadValue;
+            this.guidance = guidance;
+        }
+
+        public String payloadValue() {
+            return payloadValue;
+        }
+
+        public String guidance() {
+            return guidance;
+        }
+    }
+
+    public record TieredSynthesisDocument(UploadedDocument document, DocumentInsight insight, SourceTier tier) {
     }
 }

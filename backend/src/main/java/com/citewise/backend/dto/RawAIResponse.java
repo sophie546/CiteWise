@@ -1,23 +1,35 @@
 package com.citewise.backend.dto;
 
 import java.util.List;
+import com.fasterxml.jackson.annotation.JsonAlias;
 
 public class RawAIResponse {
     private String documentId;
     private String filename;
 
+    @JsonAlias({"gapAlignment", "gap_alignment_score"})
     private Double gapAlignmentScore;
+    @JsonAlias({"methodology", "methodology_score"})
     private Double methodologyScore;
+    @JsonAlias({"theory", "theoretical", "theoretical_score", "theoryScore"})
     private Double theoreticalScore;
+    @JsonAlias({"citationQuality", "citation_quality", "citation_score"})
     private Double citationScore;
+    @JsonAlias({"overall", "overall_score"})
     private Double overallScore;
 
+    @JsonAlias({"recommendation", "recommendation_status", "status"})
     private String recommendationStatus;
+    @JsonAlias({"confidence", "confidence_level"})
     private String confidenceLevel;
+    @JsonAlias({"relevance", "relevance_level"})
     private String relevanceLevel;
 
+    @JsonAlias({"mismatch_flags"})
     private List<String> mismatchFlags;
+    @JsonAlias({"weakness_flags"})
     private List<String> weaknessFlags;
+    @JsonAlias({"validation_flags"})
     private List<String> validationFlags;
 
     private List<EvidenceExcerptDto> evidenceExcerpts;

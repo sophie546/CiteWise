@@ -34,6 +34,10 @@ public class DocumentAnalysisController {
     private final DocumentInsightRepository documentInsightRepository;
     private final UploadedDocumentRepository uploadedDocumentRepository;
     private final DocumentUploadService documentUploadService;
+    private static final double WEIGHT_GAP = 0.35;
+    private static final double WEIGHT_METHOD = 0.30;
+    private static final double WEIGHT_THEORY = 0.20;
+    private static final double WEIGHT_CITATION = 0.15;
 
     public DocumentAnalysisController(
         DocumentInsightRepository documentInsightRepository,
@@ -47,7 +51,13 @@ public class DocumentAnalysisController {
 
     @GetMapping("/{id}/insights")
     @Transactional
-    public ResponseEntity<DocumentInsightDto> getDocumentInsights(@PathVariable("id") Long id) {
+    public ResponseEntity<DocumentInsightDto> getDocumentInsights(
+        @PathVariable("id") Long id,
+        @RequestHeader(value = "X-Session-Id", required = false) String sessionId
+    ) {
+        if (!documentBelongsToSession(id, sessionId)) {
+            return ResponseEntity.notFound().build();
+        }
         return documentInsightRepository.findByDocumentIdWithExcerpts(id)
                 .map(insight -> {
                     if (N8nResponseValidator.isPlaceholderInsight(insight)) {
@@ -130,7 +140,13 @@ public class DocumentAnalysisController {
      * Used by the frontend sidebar to display uploaded RRLs with relevancy scores.
      */
     @GetMapping("/session/{sessionId}")
-    public ResponseEntity<List<DocumentSummaryDto>> getSessionDocuments(@PathVariable("sessionId") String sessionId) {
+    public ResponseEntity<List<DocumentSummaryDto>> getSessionDocuments(
+        @PathVariable("sessionId") String sessionId,
+        @RequestHeader(value = "X-Session-Id", required = false) String headerSessionId
+    ) {
+        if (headerSessionId != null && !headerSessionId.isBlank() && !headerSessionId.equals(sessionId)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
         logger.debug("Session documents request sessionId={}", sessionId);
         
         List<UploadedDocument> documents = uploadedDocumentRepository.findBySessionId(sessionId);
@@ -149,12 +165,17 @@ public class DocumentAnalysisController {
                 double method = insight.getMethodologyScore() != null ? insight.getMethodologyScore() : 0;
                 double theory = insight.getTheoreticalScore() != null ? insight.getTheoreticalScore() : 0;
                 double citation = insight.getCitationScore() != null ? insight.getCitationScore() : 0;
-                double relevancy = insight.getOverallScore() != null ? insight.getOverallScore() : ((gap + method + theory + citation) / 4.0);
+                double relevancy = insight.getOverallScore() != null
+                    ? insight.getOverallScore()
+                    : calculateOverallScore(gap, method, theory, citation);
 
-                summaries.add(new DocumentSummaryDto(
+                DocumentSummaryDto summary = new DocumentSummaryDto(
                         doc.getId(), doc.getFileName(), doc.getSizeBytes(),
                     "complete", relevancy, gap, method, theory, citation, doc.isApproved()
-                ));
+                );
+                summary.setRecommendationStatus(insight.getRecommendationStatus());
+                summary.setRelevanceLevel(insight.getRelevanceLevel());
+                summaries.add(summary);
             } else {
                 String status = "processing";
                 if (doc.getScoringStatus() != null) {
@@ -170,10 +191,21 @@ public class DocumentAnalysisController {
         return ResponseEntity.ok(summaries);
     }
 
+    private double calculateOverallScore(double gap, double method, double theory, double citation) {
+        return (gap * WEIGHT_GAP) + (method * WEIGHT_METHOD) + (theory * WEIGHT_THEORY) + (citation * WEIGHT_CITATION);
+    }
+
     @PostMapping("/{id}/assess")
-    public ResponseEntity<ApiResponse<String>> assessDocument(@PathVariable("id") Long id) {
+    public ResponseEntity<ApiResponse<String>> assessDocument(
+        @PathVariable("id") Long id,
+        @RequestHeader(value = "X-Session-Id", required = false) String sessionId
+    ) {
         UploadedDocument document = uploadedDocumentRepository.findById(id).orElse(null);
         if (document == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse<>(false, "Document not found", null));
+        }
+        if (!matchesSession(document, sessionId)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ApiResponse<>(false, "Document not found", null));
         }
@@ -190,8 +222,12 @@ public class DocumentAnalysisController {
 
     @DeleteMapping("/{id}")
     @Transactional
-    public ResponseEntity<Void> deleteDocument(@PathVariable("id") Long id) {
-        if (!uploadedDocumentRepository.existsById(id)) {
+    public ResponseEntity<Void> deleteDocument(
+        @PathVariable("id") Long id,
+        @RequestHeader(value = "X-Session-Id", required = false) String sessionId
+    ) {
+        UploadedDocument document = uploadedDocumentRepository.findById(id).orElse(null);
+        if (document == null || !matchesSession(document, sessionId)) {
             return ResponseEntity.notFound().build();
         }
         
@@ -200,5 +236,18 @@ public class DocumentAnalysisController {
         
         uploadedDocumentRepository.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private boolean documentBelongsToSession(Long documentId, String sessionId) {
+        if (sessionId == null || sessionId.isBlank()) {
+            return true;
+        }
+        return uploadedDocumentRepository.findById(documentId)
+            .map(document -> matchesSession(document, sessionId))
+            .orElse(false);
+    }
+
+    private boolean matchesSession(UploadedDocument document, String sessionId) {
+        return sessionId == null || sessionId.isBlank() || sessionId.equals(document.getSessionId());
     }
 }
