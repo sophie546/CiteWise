@@ -286,9 +286,9 @@ const Dashboard = ({ documents, onGenerateIntro, dashboardVisible }) => {
 
             <div style={{ fontSize: "0.68rem", color: "#ff8a42", fontWeight: "700", marginBottom: "10px", animation: dashboardVisible ? "fadeInUp 0.6s ease-out 0.4s forwards" : "none", opacity: dashboardVisible ? 1 : 0 }}>📊 Semantic Alignment Scores</div>
             {[
-              { label: "Research Gap Alignment", key: "alignment", val: targetValues.alignment },
-              { label: "Methodological Relevance", key: "methodological", val: targetValues.methodological },
-              { label: "Theoretical Contribution", key: "theoretical", val: targetValues.theoretical },
+              { label: "Gap Alignment", key: "alignment", val: targetValues.alignment },
+              { label: "Methodology", key: "methodological", val: targetValues.methodological },
+              { label: "Theory / Framework", key: "theoretical", val: targetValues.theoretical },
               { label: "Citation Quality", key: "citation", val: targetValues.citation },
             ].map((item, idx) => (
               <div key={item.label} style={{

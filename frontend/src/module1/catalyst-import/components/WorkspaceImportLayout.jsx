@@ -62,7 +62,9 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
   const fetchUploadedFiles = useCallback(async () => {
     if (!sessionId) return;
     try {
-      const res = await fetch(`/api/v1/documents/session/${sessionId}`);
+      const res = await fetch(`/api/v1/documents/session/${sessionId}`, {
+        headers: { "X-Session-Id": sessionId },
+      });
       if (res.ok) {
         const docs = await res.json();
         uploadedFileNamesRef.current = new Set(
@@ -368,13 +370,32 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
 
   const resetSession = () => {
     if (confirm("⚠️ This will clear all your uploaded documents and session data. Are you sure?")) {
-      localStorage.removeItem(STORAGE_SESSION_KEY);
-      localStorage.removeItem(STORAGE_CATALYST_KEY);
+      clearCiteWiseSessionStorage();
       setSessionId("");
       setCatalystData(null);
       setFileQueue([]);
       window.location.reload();
     }
+  };
+
+  const clearCiteWiseSessionStorage = () => {
+    const prefixes = [
+      "citewise.uploadedDocs",
+      "citewise_approved_docs_",
+      "citewise_draft_",
+    ];
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && prefixes.some((prefix) => key.startsWith(prefix))) {
+        localStorage.removeItem(key);
+      }
+    }
+    localStorage.removeItem("citewise.sessionId");
+    localStorage.removeItem("citewise.session_id");
+    localStorage.removeItem(STORAGE_CATALYST_KEY);
+    localStorage.removeItem("citewise.step");
+    localStorage.removeItem("citewise.maxUnlockedStep");
+    sessionStorage.clear();
   };
 
   const readyCount = fileQueue.filter((i) => i.status === "queued").length;

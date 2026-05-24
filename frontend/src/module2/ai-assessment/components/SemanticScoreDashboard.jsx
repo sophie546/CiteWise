@@ -2,9 +2,9 @@ import React from 'react';
 
 // Metrics definition using first file's keys, but labels from second file
 const METRICS = [
-  { label: "Research Gap Alignment", key: "gapAlignment" },
-  { label: "Methodological Relevance", key: "methodology" },
-  { label: "Theoretical Contribution", key: "theoretical" },
+  { label: "Gap Alignment", key: "gapAlignment" },
+  { label: "Methodology", key: "methodology" },
+  { label: "Theory / Framework", key: "theoretical" },
   { label: "Citation Quality", key: "citation" },
 ];
 

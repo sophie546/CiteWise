@@ -7,6 +7,7 @@ import UploadStatusBar from "./UploadStatusBar";
 const MAX_FILE_MB = 20;
 const STORAGE_SESSION_KEY = "citewise.session_id";
 const DUPLICATE_REMOVE_DELAY = 3000;
+const LEGACY_UPLOADS_KEY = "citewise.uploadedDocs";
 
 // Key by name+size only (lastModified can differ on re-pick in some browsers)
 function buildFileKey(file) {
@@ -28,7 +29,6 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
     return newSessionId;
   });
 
-  const STORAGE_UPLOADS_KEY = "citewise.uploadedDocs";
   const [fileQueue, setFileQueue] = useState([]);
   const [uploadState, setUploadState] = useState("ready");
   const [statusMessage, setStatusMessage] = useState("Ready to upload");
@@ -54,7 +54,9 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
   const fetchUploadedFiles = useCallback(async () => {
     if (!sessionId) return;
     try {
-      const res = await fetch(`/api/v1/documents/session/${sessionId}`);
+      const res = await fetch(`/api/v1/documents/session/${sessionId}`, {
+        headers: { "X-Session-Id": sessionId },
+      });
       if (res.ok) {
         const docs = await res.json();
         uploadedFileNamesRef.current = new Set(
@@ -71,16 +73,19 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
   }, [fetchUploadedFiles]);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_UPLOADS_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setFileQueue(parsed.filter((item) => item.status !== "duplicate"));
-      } catch (err) {
-        // ignore
-      }
+    localStorage.removeItem(LEGACY_UPLOADS_KEY);
+    setFileQueue([]);
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (propSessionId && propSessionId !== sessionId) {
+      setSessionId(propSessionId);
+      setFileQueue([]);
+      setUploadState("ready");
+      setStatusMessage("Ready to upload");
+      uploadedFileNamesRef.current = new Set();
     }
-  }, []);
+  }, [propSessionId, sessionId]);
 
   useEffect(() => {
     if (sessionId) localStorage.setItem(STORAGE_SESSION_KEY, sessionId);
@@ -268,15 +273,7 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
       // Refresh ref so future selections detect newly uploaded files immediately
       await fetchUploadedFiles();
 
-      try {
-        const uploaded = results
-          .filter((r) => r.success)
-          .map((r) => ({ name: r.fileName, status: "uploaded", message: r.message }));
-        const stored = JSON.parse(localStorage.getItem(STORAGE_UPLOADS_KEY) || "[]");
-        localStorage.setItem(STORAGE_UPLOADS_KEY, JSON.stringify([...stored, ...uploaded]));
-      } catch (err) {
-        // ignore storage errors
-      }
+      localStorage.removeItem(LEGACY_UPLOADS_KEY);
     } catch (err) {
       setUploadState("error");
       setStatusMessage(err.message);
@@ -297,7 +294,7 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
   };
 
   const clearSession = () => {
-    localStorage.removeItem("citewise.session_id");
+    clearCiteWiseSessionStorage();
     window.location.reload();
   };
 
@@ -461,4 +458,22 @@ export default function RrlUploadLayout({ sessionId: propSessionId, onUploadComp
       </div>
     </div>
   );
+}
+
+function clearCiteWiseSessionStorage() {
+  const prefixes = [
+    "citewise.uploadedDocs",
+    "citewise_approved_docs_",
+    "citewise_draft_",
+  ];
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const key = localStorage.key(i);
+    if (key && prefixes.some((prefix) => key.startsWith(prefix))) {
+      localStorage.removeItem(key);
+    }
+  }
+  localStorage.removeItem("citewise.session_id");
+  localStorage.removeItem("citewise.sessionId");
+  localStorage.removeItem("citewise.catalystData");
+  sessionStorage.clear();
 }
