@@ -64,8 +64,24 @@ export default function ValidationDashboardLayout({ sessionId: propSessionId, on
   const mapStatus = (status) => (status === "complete" ? "Ready" : "Processing");
 
   const mapDocuments = (items, previous) => {
+    const previousOrderById = new Map((previous || []).map((doc, idx) => [doc.id, idx]));
+    const normalizedItems = [...items].sort((a, b) => {
+      const aPrevIndex = previousOrderById.get(a.id);
+      const bPrevIndex = previousOrderById.get(b.id);
+
+      // Keep existing documents in their previous visible order.
+      if (aPrevIndex !== undefined && bPrevIndex !== undefined) {
+        return aPrevIndex - bPrevIndex;
+      }
+      if (aPrevIndex !== undefined) return -1;
+      if (bPrevIndex !== undefined) return 1;
+
+      // Deterministic order for brand-new documents.
+      return (a.id ?? Number.MAX_SAFE_INTEGER) - (b.id ?? Number.MAX_SAFE_INTEGER);
+    });
+
     const previousById = new Map((previous || []).map((doc) => [doc.id, doc]));
-    return items.map((item) => {
+    return normalizedItems.map((item) => {
       const prev = previousById.get(item.id);
       // Prefer a backend-provided overallScore if present (ensures weighted score used),
       // otherwise fall back to legacy relevancyScore field.
@@ -339,6 +355,9 @@ export default function ValidationDashboardLayout({ sessionId: propSessionId, on
 const handleProceed = () => {
   // Get currently approved documents from current session
   const currentlyApproved = documents.filter(doc => doc.approved === true);
+  const currentDocKeys = new Set(
+    documents.map((doc) => doc.id || doc.name || doc.fileName).filter(Boolean)
+  );
   
   console.log("=== PROCEED TO SYNTHESIS ===");
   console.log("Currently approved in Module 2:", currentlyApproved.map(d => d.name));
@@ -358,23 +377,28 @@ const handleProceed = () => {
     }
   }
   
-  // MERGE: Combine existing with newly approved, avoid duplicates by ID and name
+  // MERGE with reconciliation:
+  // 1) Keep existing docs that are outside current doc list.
+  // 2) For docs in current list, use ONLY the user's current approval state.
   const mergedMap = new Map();
-  
-  // Add existing documents first
+
+  // Seed map from existing storage.
   existingApproved.forEach(doc => {
     const key = doc.id || doc.name || doc.fileName;
-    mergedMap.set(key, doc);
+    if (key) {
+      mergedMap.set(key, doc);
+    }
   });
-  
-  // Add/merge newly approved documents
+
+  // Remove any current documents first to prevent stale approved entries.
+  currentDocKeys.forEach((key) => {
+    mergedMap.delete(key);
+  });
+
+  // Add back only docs that are currently approved by the user.
   currentlyApproved.forEach(newDoc => {
     const key = newDoc.id || newDoc.name || newDoc.fileName;
-    if (mergedMap.has(key)) {
-      console.log("Document already exists, updating:", newDoc.name || newDoc.fileName);
-      // Update existing document with latest data
-      mergedMap.set(key, { ...mergedMap.get(key), ...newDoc });
-    } else {
+    if (key) {
       console.log("Adding NEW document:", newDoc.name || newDoc.fileName);
       mergedMap.set(key, newDoc);
     }
