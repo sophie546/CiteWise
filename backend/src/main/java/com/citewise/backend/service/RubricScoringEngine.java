@@ -73,19 +73,22 @@ public class RubricScoringEngine {
             if (confidence == null) confidence = "Low"; // safe default
             insight.setConfidenceLevel(confidence);
 
-            // Prefer n8n-provided relevance if present, otherwise compute deterministically
-            String responseRelevance = readText(root, "relevanceLevel", "relevance_level", "relevance");
-            String relevanceLevel = responseRelevance != null ? responseRelevance : applyThresholdRules(overall, gapAlignment, confidence, mismatchFlags, excerpts);
-            insight.setRelevanceLevel(relevanceLevel);
-
-            // Prefer n8n-provided recommendation if present, otherwise recompute
-            String responseRecommendation = readText(root, "recommendationStatus", "recommendation_status", "recommendation", "status");
-            if (responseRecommendation != null) {
-                insight.setRecommendationStatus(responseRecommendation);
-            } else {
-                String recomputedRecommendation = computeRecommendation(overall, gapAlignment, confidence, mismatchFlags);
-                insight.setRecommendationStatus(recomputedRecommendation);
-            }
+            // Backend-owned deterministic classification.
+            // The AI may provide scores, evidence, confidence, and flags,
+            // but CiteWise applies fixed backend rules for the final recommendation.
+            String recommendationStatus = computeRecommendation(
+                overall,
+                gapAlignment,
+                methodology,
+                theoretical,
+                citation,
+                confidence,
+                mismatchFlags,
+                excerpts
+            );
+            
+            insight.setRecommendationStatus(recommendationStatus);
+            insight.setRelevanceLevel(computeRelevanceLevel(recommendationStatus, overall));
 
             if (!hasUsableContent(insight)) {
                 logger.warn(
@@ -126,31 +129,102 @@ public class RubricScoringEngine {
         return v;
     }
 
-    public String applyThresholdRules(double overall, double gapAlignment, String confidenceLevel, List<String> mismatchFlags, List<EvidenceExcerpt> excerpts) {
-        // Low Relevance if overall < 60
-        if (overall < 60) return "Low";
-        // Low Relevance if gapAlignment <= 40
-        if (gapAlignment <= 40) return "Low";
-        // Low Relevance if there is no verified evidence
-        boolean hasVerified = excerpts != null && !excerpts.isEmpty();
-        if (!hasVerified) return "Low";
-        // Low Relevance if mismatchFlags contains a critical mismatch (heuristic contains 'critical')
-        if (mismatchFlags != null) {
-            for (String f : mismatchFlags) {
-                if (f != null && f.toLowerCase().contains("critical")) return "Low";
+        public String applyThresholdRules(
+            double overall,
+            double gapAlignment,
+            String confidenceLevel,
+            List<String> mismatchFlags,
+            List<EvidenceExcerpt> excerpts
+    ) {
+        return computeRecommendation(
+            overall,
+            gapAlignment,
+            0.0,
+            0.0,
+            0.0,
+            confidenceLevel,
+            mismatchFlags,
+            excerpts
+        );
+    }
+    
+    public String computeRecommendation(
+            double overall,
+            double gapAlignment,
+            String confidenceLevel,
+            List<String> mismatchFlags
+    ) {
+        return computeRecommendation(
+            overall,
+            gapAlignment,
+            0.0,
+            0.0,
+            0.0,
+            confidenceLevel,
+            mismatchFlags,
+            List.of()
+        );
+    }
+    
+        public String computeRecommendation(
+                double overall,
+                double gapAlignment,
+                double methodology,
+                double theoretical,
+                double citation,
+                String confidenceLevel,
+                List<String> mismatchFlags,
+                List<EvidenceExcerpt> excerpts
+        ) {
+            boolean hasCriticalMismatch = hasCriticalMismatch(mismatchFlags);
+            boolean hasEvidence = excerpts != null && !excerpts.isEmpty();
+            boolean confidenceLow = confidenceLevel == null || confidenceLevel.equalsIgnoreCase("Low");
+        
+            if (overall < 50 || gapAlignment < 40 || hasCriticalMismatch || !hasEvidence) {
+                return "Low Relevance";
             }
+        
+            if (
+                overall >= 80
+                && gapAlignment >= 75
+                && methodology >= 70
+                && citation >= 60
+                && !confidenceLow
+            ) {
+                return "Recommended";
+            }
+        
+            return "Needs Review";
         }
-        return "Medium";
-    }
-
-    public String computeRecommendation(double overall, double gapAlignment, String confidenceLevel, List<String> mismatchFlags) {
-        boolean hasCritical = mismatchFlags != null && mismatchFlags.stream().anyMatch(f -> f != null && f.toLowerCase().contains("critical"));
-        boolean confidenceLow = confidenceLevel == null || confidenceLevel.equalsIgnoreCase("Low");
-        if (overall >= 80 && gapAlignment >= 75 && !confidenceLow && !hasCritical) {
-            return "Recommended";
+        
+        private String computeRelevanceLevel(String recommendationStatus, double overall) {
+            if ("Recommended".equalsIgnoreCase(recommendationStatus)) {
+                return "High";
+            }
+        
+            if ("Low Relevance".equalsIgnoreCase(recommendationStatus)) {
+                return "Low";
+            }
+        
+            return overall >= 60 ? "Medium" : "Low";
         }
-        return "Needs Review";
-    }
+        
+        private boolean hasCriticalMismatch(List<String> mismatchFlags) {
+            if (mismatchFlags == null || mismatchFlags.isEmpty()) {
+                return false;
+            }
+        
+            return mismatchFlags.stream()
+                .filter(flag -> flag != null)
+                .map(flag -> flag.toLowerCase(java.util.Locale.ROOT))
+                .anyMatch(flag ->
+                    flag.contains("critical")
+                    || flag.contains("topic mismatch")
+                    || flag.contains("topic_mismatch")
+                    || flag.contains("unrelated")
+                    || flag.contains("irrelevant")
+                );
+        }
 
     private String toJsonSafe(List<String> list) {
         try {
