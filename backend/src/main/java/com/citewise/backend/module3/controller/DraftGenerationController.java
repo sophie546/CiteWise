@@ -17,8 +17,10 @@ public class DraftGenerationController {
     private final RAGSynthesisService raqSynthesisService;
 
     @PostMapping("/generate")
-    public ResponseEntity<SynthesisResponseDto> generateIntroduction(@RequestParam UUID sessionId) {
-        SynthesisResponseDto response = raqSynthesisService.orchestrateDrafting(sessionId);
+    public ResponseEntity<SynthesisResponseDto> generateIntroduction(
+            @RequestParam UUID sessionId,
+            @RequestParam(required = false) String chosenGap) {
+        SynthesisResponseDto response = raqSynthesisService.orchestrateDrafting(sessionId, chosenGap);
         return ResponseEntity.ok(response);
     }
 

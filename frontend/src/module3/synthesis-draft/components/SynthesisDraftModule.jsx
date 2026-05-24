@@ -301,10 +301,11 @@
       }, 1200);
 
       try {
-        const response = await fetch(
-          `/api/v1/synthesis/generate?sessionId=${encodeURIComponent(sessionId)}`,
-          { method: "POST" }
-        );
+        const chosenGap = localStorage.getItem(`citewise_chosen_gap_${sessionId}`)?.trim();
+        const synthesisUrl = chosenGap
+          ? `/api/v1/synthesis/generate?sessionId=${encodeURIComponent(sessionId)}&chosenGap=${encodeURIComponent(chosenGap)}`
+          : `/api/v1/synthesis/generate?sessionId=${encodeURIComponent(sessionId)}`;
+        const response = await fetch(synthesisUrl, { method: "POST" });
         const payload = await response.json().catch(() => null);
         clearInterval(interval);
 

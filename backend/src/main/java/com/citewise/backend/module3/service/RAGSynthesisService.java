@@ -45,6 +45,11 @@ public class RAGSynthesisService {
 
     @Transactional
     public SynthesisResponseDto orchestrateDrafting(UUID sessionId) {
+        return orchestrateDrafting(sessionId, null);
+    }
+
+    @Transactional
+    public SynthesisResponseDto orchestrateDrafting(UUID sessionId, String chosenGap) {
         log.info("RAGSynthesisService orchestrating drafting for session: {}", sessionId);
 
         SemanticBaseline baseline = baselineRepository
@@ -92,7 +97,7 @@ public class RAGSynthesisService {
                 .build();
         }
 
-        JsonNode n8nResponse = synthesisN8nClient.callSynthesisWebhook(sessionId, baseline, usableDocs);
+        JsonNode n8nResponse = synthesisN8nClient.callSynthesisWebhook(sessionId, baseline, usableDocs, chosenGap);
 
         String contentText = n8nResponse.path("contentText").asText("");
         String referencesText = n8nResponse.path("referencesText").asText("");

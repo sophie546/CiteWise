@@ -43,6 +43,10 @@ public class SynthesisN8nClient {
     }
 
     public JsonNode callSynthesisWebhook(UUID sessionId, SemanticBaseline baseline, List<TieredSynthesisDocument> documents) {
+        return callSynthesisWebhook(sessionId, baseline, documents, null);
+    }
+
+    public JsonNode callSynthesisWebhook(UUID sessionId, SemanticBaseline baseline, List<TieredSynthesisDocument> documents, String chosenGap) {
         try {
             ObjectNode payload = objectMapper.createObjectNode();
             payload.put("sessionId", sessionId.toString());
@@ -50,10 +54,13 @@ public class SynthesisN8nClient {
                 "The CATalyst Title, Rationale, and Research Gap are the primary source of truth. "
                 + "Approved documents are supplementary. Use Core Sources as the main evidence, "
                 + "Supporting Sources cautiously, Tangential Sources only for brief background, "
-                + "and Excluded Sources not at all. Do not let a low-relevance approved document redirect the topic.");
+                + "and Excluded Sources not at all. Do not let a low-relevance approved document redirect the topic. "
+                + "The primaryFocusGap is the user's selected gap and should be treated as the main structural narrative pivot. "
+                + "The remaining gaps provide supporting context.");
 
             // Build baseline node
             ObjectNode baselineNode = objectMapper.createObjectNode();
+            String normalizedChosenGap = normalizeChosenGap(chosenGap);
             if (baseline != null) {
                 baselineNode.put("title", baseline.getProjectTitle() != null ? baseline.getProjectTitle() : "");
                 baselineNode.put("rationale", baseline.getRationale() != null ? baseline.getRationale() : "");
@@ -80,6 +87,10 @@ public class SynthesisN8nClient {
                         gapsArray.add(baseline.getResearchGaps());
                     }
                 }
+            }
+            if (normalizedChosenGap != null) {
+                baselineNode.put("primaryFocusGap", normalizedChosenGap);
+                baselineNode.put("chosenGap", normalizedChosenGap);
             }
             payload.set("baseline", baselineNode);
 
@@ -190,6 +201,13 @@ public class SynthesisN8nClient {
             log.error("Synthesis webhook call failed: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to call synthesis webhook: " + e.getMessage(), e);
         }
+    }
+
+    private String normalizeChosenGap(String chosenGap) {
+        if (chosenGap == null || chosenGap.isBlank()) {
+            return null;
+        }
+        return chosenGap.trim();
     }
 
     private DocumentInsight fetchInsightWithExcerpts(UploadedDocument doc, DocumentInsight fallback) {
