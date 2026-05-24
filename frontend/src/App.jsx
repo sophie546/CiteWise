@@ -19,6 +19,15 @@ export default function App() {
     const saved = localStorage.getItem("citewise.step");
     return saved !== null ? parseInt(saved, 10) : -1;
   });
+  const [maxUnlockedStep, setMaxUnlockedStep] = useState(() => {
+    const saved = localStorage.getItem("citewise.maxUnlockedStep");
+    const parsed = saved !== null ? parseInt(saved, 10) : NaN;
+    const currentFloor = step >= 0 ? step : 0;
+    if (!Number.isNaN(parsed)) {
+      return Math.max(parsed, currentFloor);
+    }
+    return currentFloor;
+  });
   const [sessionId, setSessionId] = useState(() => {
     return localStorage.getItem("citewise.sessionId") || "";
   });
@@ -34,10 +43,15 @@ export default function App() {
     }
   }, [sessionId]);
 
+  useEffect(() => {
+    localStorage.setItem("citewise.maxUnlockedStep", maxUnlockedStep.toString());
+  }, [maxUnlockedStep]);
+
   const handleGetStarted = () => {
     setIsLoading(true);
     setTimeout(() => {
       setStep(0);
+      setMaxUnlockedStep((prev) => Math.max(prev, 0));
       setIsLoading(false);
     }, 800);
   };
@@ -48,13 +62,34 @@ export default function App() {
     // setSessionId("");
   };
 
+  const handleNavbarNavigate = (nextStep) => {
+    if (nextStep <= maxUnlockedStep) {
+      setStep(nextStep);
+    }
+  };
+
+  const handleModule1Proceed = () => {
+    setMaxUnlockedStep((prev) => Math.max(prev, 1));
+    setStep(1);
+  };
+
+  const handleModuleStepChange = (nextStep, nextSessionId) => {
+    if (nextSessionId) {
+      setSessionId(nextSessionId);
+    }
+    if (typeof nextStep !== "number") return;
+    setMaxUnlockedStep((prev) => Math.max(prev, nextStep));
+    setStep(nextStep);
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#1E1C19" }}>
 
       {step !== -1 && (
         <GlobalNavigationBar 
           currentStep={step} 
-          onNavigate={setStep}
+          maxUnlockedStep={maxUnlockedStep}
+          onNavigate={handleNavbarNavigate}
           onLogoClick={handleLogoClick}
         />
       )}
@@ -74,14 +109,14 @@ export default function App() {
         {step === 0 && (
           <WorkspaceImportLayout
             onImportSuccess={(sid) => setSessionId(sid)}
-            onProceed={() => setStep(1)}
+            onProceed={handleModule1Proceed}
           />
         )}
 
         {step === 1 && (
           <ValidationDashboardLayout
             sessionId={sessionId}
-            onStepChange={setStep}
+            onStepChange={handleModuleStepChange}
           />
         )}
 
@@ -89,7 +124,7 @@ export default function App() {
         {step === 2 && (
           <SynthesisDraftModule
             sessionId={sessionId}
-            onStepChange={setStep}
+            onStepChange={handleModuleStepChange}
           />
         )}
 

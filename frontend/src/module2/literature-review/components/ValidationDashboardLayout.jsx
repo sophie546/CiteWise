@@ -7,6 +7,7 @@ import RrlUploadLayout from "../../../module1/rrl-upload/components/RrlUploadLay
 
 export default function ValidationDashboardLayout({ sessionId: propSessionId, onStepChange }) {
   const STORAGE_SESSION_KEY = "citewise.session_id";
+  const LOW_RELEVANCE_APPROVAL_THRESHOLD = 60;
 
   // Use sessionId from prop or generate/get from localStorage
   const [resolvedSessionId, setResolvedSessionId] = useState(() => {
@@ -33,6 +34,11 @@ export default function ValidationDashboardLayout({ sessionId: propSessionId, on
     averageScore: 0,
   });
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [approvalWarningModal, setApprovalWarningModal] = useState({
+    show: false,
+    docId: null,
+    message: "",
+  });
 
   // State for modular Upload modal
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -58,8 +64,24 @@ export default function ValidationDashboardLayout({ sessionId: propSessionId, on
   const mapStatus = (status) => (status === "complete" ? "Ready" : "Processing");
 
   const mapDocuments = (items, previous) => {
+    const previousOrderById = new Map((previous || []).map((doc, idx) => [doc.id, idx]));
+    const normalizedItems = [...items].sort((a, b) => {
+      const aPrevIndex = previousOrderById.get(a.id);
+      const bPrevIndex = previousOrderById.get(b.id);
+
+      // Keep existing documents in their previous visible order.
+      if (aPrevIndex !== undefined && bPrevIndex !== undefined) {
+        return aPrevIndex - bPrevIndex;
+      }
+      if (aPrevIndex !== undefined) return -1;
+      if (bPrevIndex !== undefined) return 1;
+
+      // Deterministic order for brand-new documents.
+      return (a.id ?? Number.MAX_SAFE_INTEGER) - (b.id ?? Number.MAX_SAFE_INTEGER);
+    });
+
     const previousById = new Map((previous || []).map((doc) => [doc.id, doc]));
-    return items.map((item) => {
+    return normalizedItems.map((item) => {
       const prev = previousById.get(item.id);
       // Prefer a backend-provided overallScore if present (ensures weighted score used),
       // otherwise fall back to legacy relevancyScore field.
@@ -213,9 +235,9 @@ export default function ValidationDashboardLayout({ sessionId: propSessionId, on
     });
   }, [documents]);
 
-  const handleApprovalToggle = async (index) => {
+  const applyApprovalToggle = async (index, targetApprovalState) => {
     const docToToggle = documents[index];
-    const targetApprovalState = !docToToggle.approved;
+    if (!docToToggle) return;
 
     const updatedDocs = documents.map((doc, i) =>
       i === index ? { ...doc, approved: targetApprovalState } : doc
@@ -259,6 +281,44 @@ export default function ValidationDashboardLayout({ sessionId: propSessionId, on
     }
   };
 
+  const handleApprovalToggle = async (index) => {
+    const docToToggle = documents[index];
+    if (!docToToggle) return;
+    const targetApprovalState = !docToToggle.approved;
+
+    if (
+      targetApprovalState &&
+      typeof docToToggle.relevancyScore === "number" &&
+      docToToggle.relevancyScore < LOW_RELEVANCE_APPROVAL_THRESHOLD
+    ) {
+      const docName = docToToggle.name || "This document";
+      setApprovalWarningModal({
+        show: true,
+        docId: docToToggle.id,
+        message: `${docName} shows low relevance to the topic.`,
+      });
+      return;
+    }
+
+    await applyApprovalToggle(index, targetApprovalState);
+  };
+
+  const handleConfirmApprovalWarning = async () => {
+    const { docId } = approvalWarningModal;
+    setApprovalWarningModal({ show: false, docId: null, message: "" });
+    if (!docId) return;
+
+    const targetIndex = documents.findIndex((doc) => doc.id === docId);
+    if (targetIndex === -1) return;
+    if (documents[targetIndex].approved) return;
+
+    await applyApprovalToggle(targetIndex, true);
+  };
+
+  const handleCancelApprovalWarning = () => {
+    setApprovalWarningModal({ show: false, docId: null, message: "" });
+  };
+
   const handleDeleteDocument = async (index) => {
     const docToDelete = documents[index];
     if (!docToDelete?.id) return;
@@ -295,6 +355,9 @@ export default function ValidationDashboardLayout({ sessionId: propSessionId, on
 const handleProceed = () => {
   // Get currently approved documents from current session
   const currentlyApproved = documents.filter(doc => doc.approved === true);
+  const currentDocKeys = new Set(
+    documents.map((doc) => doc.id || doc.name || doc.fileName).filter(Boolean)
+  );
   
   console.log("=== PROCEED TO SYNTHESIS ===");
   console.log("Currently approved in Module 2:", currentlyApproved.map(d => d.name));
@@ -314,23 +377,28 @@ const handleProceed = () => {
     }
   }
   
-  // MERGE: Combine existing with newly approved, avoid duplicates by ID and name
+  // MERGE with reconciliation:
+  // 1) Keep existing docs that are outside current doc list.
+  // 2) For docs in current list, use ONLY the user's current approval state.
   const mergedMap = new Map();
-  
-  // Add existing documents first
+
+  // Seed map from existing storage.
   existingApproved.forEach(doc => {
     const key = doc.id || doc.name || doc.fileName;
-    mergedMap.set(key, doc);
+    if (key) {
+      mergedMap.set(key, doc);
+    }
   });
-  
-  // Add/merge newly approved documents
+
+  // Remove any current documents first to prevent stale approved entries.
+  currentDocKeys.forEach((key) => {
+    mergedMap.delete(key);
+  });
+
+  // Add back only docs that are currently approved by the user.
   currentlyApproved.forEach(newDoc => {
     const key = newDoc.id || newDoc.name || newDoc.fileName;
-    if (mergedMap.has(key)) {
-      console.log("Document already exists, updating:", newDoc.name || newDoc.fileName);
-      // Update existing document with latest data
-      mergedMap.set(key, { ...mergedMap.get(key), ...newDoc });
-    } else {
+    if (key) {
       console.log("Adding NEW document:", newDoc.name || newDoc.fileName);
       mergedMap.set(key, newDoc);
     }
@@ -389,6 +457,169 @@ const handleProceed = () => {
       }}
     >
       {styleInject}
+
+      {approvalWarningModal.show && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(14, 12, 10, 0.75)",
+          backdropFilter: "blur(12px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 10000,
+          animation: "fadeInToast 0.3s ease-out forwards",
+        }}>
+          <div style={{
+            background: "#1E1C19",
+            border: "1px solid rgba(217, 138, 33, 0.25)",
+            borderRadius: "24px",
+            padding: "clamp(1rem, 3vw, 2.5rem) clamp(1rem, 4vw, 3rem)",
+            width: "max-content",
+            maxWidth: "96vw",
+            textAlign: "center",
+            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(216, 90, 48, 0.15)",
+            animation: "scaleInToast 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
+            overflowX: "auto",
+            overflowY: "hidden",
+            boxSizing: "border-box",
+          }}>
+            <div style={{
+              width: "80px",
+              height: "80px",
+              borderRadius: "50%",
+              background: "rgba(216, 90, 48, 0.1)",
+              border: "2px solid #D85A30",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 1.5rem",
+              boxShadow: "0 0 20px rgba(216, 90, 48, 0.2)",
+              animation: "pulseRing 2s infinite",
+            }}>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#D98A21" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <h3 style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: 800,
+              fontSize: "1.5rem",
+              color: "#f0ece6",
+              margin: "0 0 0.75rem 0",
+              letterSpacing: "0.01em",
+            }}>
+              Warning message
+            </h3>
+            <p style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "1.05rem",
+              fontWeight: 700,
+              color: "#ffd79f",
+              lineHeight: "1.55",
+              margin: "0 0 0.85rem 0",
+              padding: "0.9rem 1rem",
+              borderRadius: "12px",
+              border: "1px solid rgba(217, 138, 33, 0.5)",
+              background: "linear-gradient(135deg, rgba(217, 138, 33, 0.2), rgba(216, 90, 48, 0.12))",
+              boxShadow: "0 0 0 1px rgba(217, 138, 33, 0.15) inset, 0 8px 24px rgba(216, 90, 48, 0.18)",
+              letterSpacing: "0.01em",
+              whiteSpace: "nowrap",
+              minWidth: "max-content",
+            }}>
+              {approvalWarningModal.message}
+            </p>
+            <p style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "0.95rem",
+              color: "rgba(240, 236, 230, 0.7)",
+              lineHeight: "1.6",
+              margin: "0 0 1.75rem 0",
+            }}>
+              Are you sure you want to approve this document?
+            </p>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "0.9rem",
+            }}>
+              <button
+                type="button"
+                onClick={handleConfirmApprovalWarning}
+                style={{
+                  background: "#D85A30",
+                  border: "none",
+                  borderRadius: "10px",
+                  padding: "0.85rem 1rem",
+                  color: "#f0ece6",
+                  fontFamily: "'Poppins', sans-serif",
+                  fontWeight: 700,
+                  fontSize: "0.9rem",
+                  cursor: "pointer",
+                  transform: "scale(1)",
+                  boxShadow: "0 0 0 rgba(216, 90, 48, 0)",
+                  transition: "transform 0.18s ease, box-shadow 0.22s ease, background 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "scale(1.04)";
+                  e.currentTarget.style.background = "#e3663d";
+                  e.currentTarget.style.boxShadow = "0 0 24px rgba(216, 90, 48, 0.45), 0 0 42px rgba(217, 138, 33, 0.28)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "scale(1)";
+                  e.currentTarget.style.background = "#D85A30";
+                  e.currentTarget.style.boxShadow = "0 0 0 rgba(216, 90, 48, 0)";
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform = "scale(0.97)";
+                }}
+                onMouseUp={(e) => {
+                  e.currentTarget.style.transform = "scale(1.04)";
+                }}
+              >
+                Yes
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelApprovalWarning}
+                style={{
+                  background: "transparent",
+                  border: "1px solid #3A3630",
+                  borderRadius: "10px",
+                  padding: "0.85rem 1rem",
+                  color: "#f0ece6",
+                  fontFamily: "'Poppins', sans-serif",
+                  fontWeight: 700,
+                  fontSize: "0.9rem",
+                  cursor: "pointer",
+                  transform: "scale(1)",
+                  transition: "transform 0.18s ease, border-color 0.2s ease, background 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "scale(1.04)";
+                  e.currentTarget.style.borderColor = "#8a8278";
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "scale(1)";
+                  e.currentTarget.style.borderColor = "#3A3630";
+                  e.currentTarget.style.background = "transparent";
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform = "scale(0.97)";
+                }}
+                onMouseUp={(e) => {
+                  e.currentTarget.style.transform = "scale(1.04)";
+                }}
+              >
+                NO
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showUploadModal && (
         <div style={{

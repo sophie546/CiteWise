@@ -1,6 +1,6 @@
 const STEPS = ["Data Import", "AI Assessment", "Generate Introduction"];
 
-export default function GlobalNavigationBar({ currentStep = 0, onNavigate, onLogoClick }) {
+export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep = 0, onNavigate, onLogoClick }) {
   const handleLogoClick = () => {
     if (onLogoClick) {
       onLogoClick();
@@ -100,15 +100,17 @@ export default function GlobalNavigationBar({ currentStep = 0, onNavigate, onLog
           {STEPS.map((step, index) => {
             const isActive = index === currentStep;
             const isPast = index < currentStep;
-            const isClickable = true;
+            const isClickable = index <= maxUnlockedStep;
             return (
               <button
                 key={step}
                 onClick={() => isClickable && onNavigate?.(index)}
+                disabled={!isClickable}
+                aria-disabled={!isClickable}
                 style={{
                   background: "none",
                   border: "none",
-                  cursor: isClickable ? "pointer" : "default",
+                  cursor: isClickable ? "pointer" : "not-allowed",
                   fontFamily: "'Poppins', sans-serif",
                   fontSize: "0.875rem",
                   fontWeight: isActive ? 700 : 500,
@@ -116,18 +118,21 @@ export default function GlobalNavigationBar({ currentStep = 0, onNavigate, onLog
                     ? "#f0ece6"
                     : isPast
                       ? "rgba(240, 236, 230, 0.8)"
-                      : "rgba(240, 236, 230, 0.4)",
+                      : isClickable
+                        ? "rgba(240, 236, 230, 0.4)"
+                        : "rgba(240, 236, 230, 0.22)",
                   padding: "0 20px",
                   transition: "all 0.25s ease",
                   whiteSpace: "nowrap",
+                  opacity: isClickable ? 1 : 0.78,
                 }}
                 onMouseEnter={(e) => {
-                  if (!isActive) {
+                  if (!isActive && isClickable) {
                     e.currentTarget.style.color = "#f0ece6";
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (!isActive) {
+                  if (!isActive && isClickable) {
                     e.currentTarget.style.color = isPast ? "rgba(240, 236, 230, 0.8)" : "rgba(240, 236, 230, 0.4)";
                   }
                 }}

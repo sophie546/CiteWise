@@ -549,7 +549,7 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
       <div style={card}>
         <div style={cardHeader}>
           <span style={cardTitle}>RRL Document Upload</span>
-          {/*
+          {
           <button
             onClick={resetSession}
             style={{
@@ -572,7 +572,7 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
           >
             Reset Session
           </button>
-          */}
+          }
         </div>
 
         <div

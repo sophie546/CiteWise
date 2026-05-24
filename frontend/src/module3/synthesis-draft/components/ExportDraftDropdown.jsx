@@ -45,8 +45,22 @@ export default function ExportDraftDropdown({ isOpen, onToggle, onExport, onCopy
           fontFamily: "'Poppins', sans-serif",
           fontSize: "0.85rem",
           fontWeight: "700",
-          transition: "background 0.2s ease",
+          transition: "background 0.18s ease, transform 0.18s ease, box-shadow 0.22s ease",
         }}
+        onMouseEnter={(e) => {
+          if (!isEnabled) return;
+          e.currentTarget.style.transform = "scale(1.04)";
+          e.currentTarget.style.background = "#e96439";
+          e.currentTarget.style.boxShadow = "0 10px 28px rgba(216,90,48,0.35), 0 0 40px rgba(217,138,33,0.22)";
+        }}
+        onMouseLeave={(e) => {
+          if (!isEnabled) return;
+          e.currentTarget.style.transform = "scale(1)";
+          e.currentTarget.style.background = "#D85A30";
+          e.currentTarget.style.boxShadow = "none";
+        }}
+        onMouseDown={(e) => { if (isEnabled) e.currentTarget.style.transform = "scale(0.98)"; }}
+        onMouseUp={(e) => { if (isEnabled) e.currentTarget.style.transform = "scale(1.04)"; }}
       >
         Export
         <svg
