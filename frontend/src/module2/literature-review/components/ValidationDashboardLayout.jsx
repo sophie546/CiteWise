@@ -7,6 +7,7 @@ import RrlUploadLayout from "../../../module1/rrl-upload/components/RrlUploadLay
 
 export default function ValidationDashboardLayout({ sessionId: propSessionId, onStepChange }) {
   const STORAGE_SESSION_KEY = "citewise.session_id";
+  const LOW_RELEVANCE_APPROVAL_THRESHOLD = 60;
 
   // Use sessionId from prop or generate/get from localStorage
   const [resolvedSessionId, setResolvedSessionId] = useState(() => {
@@ -33,6 +34,11 @@ export default function ValidationDashboardLayout({ sessionId: propSessionId, on
     averageScore: 0,
   });
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [approvalWarningModal, setApprovalWarningModal] = useState({
+    show: false,
+    docId: null,
+    message: "",
+  });
 
   // State for modular Upload modal
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -213,9 +219,9 @@ export default function ValidationDashboardLayout({ sessionId: propSessionId, on
     });
   }, [documents]);
 
-  const handleApprovalToggle = async (index) => {
+  const applyApprovalToggle = async (index, targetApprovalState) => {
     const docToToggle = documents[index];
-    const targetApprovalState = !docToToggle.approved;
+    if (!docToToggle) return;
 
     const updatedDocs = documents.map((doc, i) =>
       i === index ? { ...doc, approved: targetApprovalState } : doc
@@ -257,6 +263,44 @@ export default function ValidationDashboardLayout({ sessionId: propSessionId, on
     } catch (err) {
       console.warn("Backend sync skipped (offline):", err.message);
     }
+  };
+
+  const handleApprovalToggle = async (index) => {
+    const docToToggle = documents[index];
+    if (!docToToggle) return;
+    const targetApprovalState = !docToToggle.approved;
+
+    if (
+      targetApprovalState &&
+      typeof docToToggle.relevancyScore === "number" &&
+      docToToggle.relevancyScore < LOW_RELEVANCE_APPROVAL_THRESHOLD
+    ) {
+      const docName = docToToggle.name || "This document";
+      setApprovalWarningModal({
+        show: true,
+        docId: docToToggle.id,
+        message: `${docName} shows low relevance to the topic.`,
+      });
+      return;
+    }
+
+    await applyApprovalToggle(index, targetApprovalState);
+  };
+
+  const handleConfirmApprovalWarning = async () => {
+    const { docId } = approvalWarningModal;
+    setApprovalWarningModal({ show: false, docId: null, message: "" });
+    if (!docId) return;
+
+    const targetIndex = documents.findIndex((doc) => doc.id === docId);
+    if (targetIndex === -1) return;
+    if (documents[targetIndex].approved) return;
+
+    await applyApprovalToggle(targetIndex, true);
+  };
+
+  const handleCancelApprovalWarning = () => {
+    setApprovalWarningModal({ show: false, docId: null, message: "" });
   };
 
   const handleDeleteDocument = async (index) => {
@@ -389,6 +433,169 @@ const handleProceed = () => {
       }}
     >
       {styleInject}
+
+      {approvalWarningModal.show && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(14, 12, 10, 0.75)",
+          backdropFilter: "blur(12px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 10000,
+          animation: "fadeInToast 0.3s ease-out forwards",
+        }}>
+          <div style={{
+            background: "#1E1C19",
+            border: "1px solid rgba(217, 138, 33, 0.25)",
+            borderRadius: "24px",
+            padding: "clamp(1rem, 3vw, 2.5rem) clamp(1rem, 4vw, 3rem)",
+            width: "max-content",
+            maxWidth: "96vw",
+            textAlign: "center",
+            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(216, 90, 48, 0.15)",
+            animation: "scaleInToast 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
+            overflowX: "auto",
+            overflowY: "hidden",
+            boxSizing: "border-box",
+          }}>
+            <div style={{
+              width: "80px",
+              height: "80px",
+              borderRadius: "50%",
+              background: "rgba(216, 90, 48, 0.1)",
+              border: "2px solid #D85A30",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 1.5rem",
+              boxShadow: "0 0 20px rgba(216, 90, 48, 0.2)",
+              animation: "pulseRing 2s infinite",
+            }}>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#D98A21" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <h3 style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: 800,
+              fontSize: "1.5rem",
+              color: "#f0ece6",
+              margin: "0 0 0.75rem 0",
+              letterSpacing: "0.01em",
+            }}>
+              Warning message
+            </h3>
+            <p style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "1.05rem",
+              fontWeight: 700,
+              color: "#ffd79f",
+              lineHeight: "1.55",
+              margin: "0 0 0.85rem 0",
+              padding: "0.9rem 1rem",
+              borderRadius: "12px",
+              border: "1px solid rgba(217, 138, 33, 0.5)",
+              background: "linear-gradient(135deg, rgba(217, 138, 33, 0.2), rgba(216, 90, 48, 0.12))",
+              boxShadow: "0 0 0 1px rgba(217, 138, 33, 0.15) inset, 0 8px 24px rgba(216, 90, 48, 0.18)",
+              letterSpacing: "0.01em",
+              whiteSpace: "nowrap",
+              minWidth: "max-content",
+            }}>
+              {approvalWarningModal.message}
+            </p>
+            <p style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: "0.95rem",
+              color: "rgba(240, 236, 230, 0.7)",
+              lineHeight: "1.6",
+              margin: "0 0 1.75rem 0",
+            }}>
+              Are you sure you want to approve this document?
+            </p>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "0.9rem",
+            }}>
+              <button
+                type="button"
+                onClick={handleConfirmApprovalWarning}
+                style={{
+                  background: "#D85A30",
+                  border: "none",
+                  borderRadius: "10px",
+                  padding: "0.85rem 1rem",
+                  color: "#f0ece6",
+                  fontFamily: "'Poppins', sans-serif",
+                  fontWeight: 700,
+                  fontSize: "0.9rem",
+                  cursor: "pointer",
+                  transform: "scale(1)",
+                  boxShadow: "0 0 0 rgba(216, 90, 48, 0)",
+                  transition: "transform 0.18s ease, box-shadow 0.22s ease, background 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "scale(1.04)";
+                  e.currentTarget.style.background = "#e3663d";
+                  e.currentTarget.style.boxShadow = "0 0 24px rgba(216, 90, 48, 0.45), 0 0 42px rgba(217, 138, 33, 0.28)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "scale(1)";
+                  e.currentTarget.style.background = "#D85A30";
+                  e.currentTarget.style.boxShadow = "0 0 0 rgba(216, 90, 48, 0)";
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform = "scale(0.97)";
+                }}
+                onMouseUp={(e) => {
+                  e.currentTarget.style.transform = "scale(1.04)";
+                }}
+              >
+                Yes
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelApprovalWarning}
+                style={{
+                  background: "transparent",
+                  border: "1px solid #3A3630",
+                  borderRadius: "10px",
+                  padding: "0.85rem 1rem",
+                  color: "#f0ece6",
+                  fontFamily: "'Poppins', sans-serif",
+                  fontWeight: 700,
+                  fontSize: "0.9rem",
+                  cursor: "pointer",
+                  transform: "scale(1)",
+                  transition: "transform 0.18s ease, border-color 0.2s ease, background 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "scale(1.04)";
+                  e.currentTarget.style.borderColor = "#8a8278";
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "scale(1)";
+                  e.currentTarget.style.borderColor = "#3A3630";
+                  e.currentTarget.style.background = "transparent";
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform = "scale(0.97)";
+                }}
+                onMouseUp={(e) => {
+                  e.currentTarget.style.transform = "scale(1.04)";
+                }}
+              >
+                NO
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showUploadModal && (
         <div style={{
