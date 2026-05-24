@@ -105,9 +105,8 @@ public class RubricScoringEngine {
         }
     }
 
-    // Provisional weights - TODO: replace with teacher-provided rubric
-    private static final double WEIGHT_GAP = 0.40;
-    private static final double WEIGHT_METHOD = 0.25;
+    private static final double WEIGHT_GAP = 0.35;
+    private static final double WEIGHT_METHOD = 0.30;
     private static final double WEIGHT_THEORY = 0.20;
     private static final double WEIGHT_CITATION = 0.15;
 
