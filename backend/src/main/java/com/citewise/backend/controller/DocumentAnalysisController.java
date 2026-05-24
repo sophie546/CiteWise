@@ -149,7 +149,7 @@ public class DocumentAnalysisController {
                 double method = insight.getMethodologyScore() != null ? insight.getMethodologyScore() : 0;
                 double theory = insight.getTheoreticalScore() != null ? insight.getTheoreticalScore() : 0;
                 double citation = insight.getCitationScore() != null ? insight.getCitationScore() : 0;
-                double relevancy = (gap + method + theory + citation) / 4.0;
+                double relevancy = insight.getOverallScore() != null ? insight.getOverallScore() : ((gap + method + theory + citation) / 4.0);
 
                 summaries.add(new DocumentSummaryDto(
                         doc.getId(), doc.getFileName(), doc.getSizeBytes(),
