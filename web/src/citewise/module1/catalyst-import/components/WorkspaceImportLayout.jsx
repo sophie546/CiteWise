@@ -552,12 +552,15 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
       <div style={card}>
         <div style={cardHeader}>
           <span style={cardTitle}>CATalyst Data Import</span>
-          <ImportHeaderBar
-            workspaceId={workspaceId}
-            onWorkspaceIdChange={setWorkspaceId}
-            onImport={handleImport}
-            isLoading={isLoading}
-          />
+          {/* Only show the manual import bar when no data is pre-loaded */}
+          {!catalystData && (
+            <ImportHeaderBar
+              workspaceId={workspaceId}
+              onWorkspaceIdChange={setWorkspaceId}
+              onImport={handleImport}
+              isLoading={isLoading}
+            />
+          )}
         </div>
 
         <DataDisplayGrid
@@ -573,30 +576,6 @@ export default function WorkspaceImportLayout({ onImportSuccess, onProceed }) {
       <div style={card}>
         <div style={cardHeader}>
           <span style={cardTitle}>RRL Document Upload</span>
-          {
-          <button
-            onClick={resetSession}
-            style={{
-              background: "transparent",
-              border: "1px solid #e05555",
-              borderRadius: "6px",
-              color: "#e05555",
-              padding: "6px 12px",
-              fontSize: "0.7rem",
-              cursor: "pointer",
-              fontFamily: "'Poppins', sans-serif",
-              transition: "all 0.2s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(224, 85, 85, 0.1)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-            }}
-          >
-            Reset Session
-          </button>
-          }
         </div>
 
         <div

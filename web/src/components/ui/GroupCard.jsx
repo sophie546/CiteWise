@@ -18,20 +18,41 @@ export default function GroupCard({
   const navigate = useNavigate();
   const { enterGroup } = useGroup();
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   function handleEnter() {
     enterGroup({ id: group_id, name, color });
     navigate(`/workspace/${group_id}`);
   }
 
-  async function handleCopyId() {
+  async function handleOpenCiteWise() {
+    setImporting(true);
     try {
-      await navigator.clipboard.writeText(group_id);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      // Clear any previous CiteWise session so this workspace gets a fresh import
+      localStorage.removeItem("citewise.sessionId");
+      localStorage.removeItem("citewise.catalystData");
+      localStorage.removeItem("citewise.step");
+      localStorage.removeItem("citewise.maxUnlockedStep");
+
+      const res = await fetch("/api/catalyst/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workspaceId: group_id }),
+      });
+      const payload = await res.json();
+      if (!res.ok || !payload?.success) {
+        alert(payload?.message || "Failed to import workspace into CiteWise.");
+        return;
+      }
+      const { sessionId, title, rationale, gaps } = payload.data;
+      localStorage.setItem("citewise.sessionId", sessionId);
+      localStorage.setItem("citewise.catalystData", JSON.stringify({ title, rationale, gaps }));
+      enterGroup({ id: group_id, name, color });
+      navigate("/citewise");
     } catch (err) {
-      console.error("Failed to copy group ID:", err);
+      alert("Could not connect to CiteWise: " + err.message);
+    } finally {
+      setImporting(false);
     }
   }
 
@@ -138,15 +159,18 @@ export default function GroupCard({
 
         <button
           type="button"
-          onClick={handleCopyId}
+          onClick={handleOpenCiteWise}
+          disabled={importing}
           className="btn w-100 fw-bold mt-2"
           style={{
-            backgroundColor: "#2a2a3d",
-            border: "1px solid #3a3a55",
-            color: "#e4e4f0",
+            backgroundColor: importing ? "#1a1a2e" : "#D98A21",
+            border: "1px solid #D98A21",
+            color: importing ? "#a1a1b5" : "#1a1a2e",
+            opacity: importing ? 0.7 : 1,
+            transition: "all 0.2s",
           }}
         >
-          {copied ? "Workspace ID Copied" : "Get Workspace ID"}
+          {importing ? "Importing..." : "CiteWise →"}
         </button>
       </div>
 

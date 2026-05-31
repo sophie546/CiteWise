@@ -1,10 +1,8 @@
 const STEPS = ["Data Import", "AI Assessment", "Generate Introduction"];
 
-export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep = 0, onNavigate, onLogoClick }) {
+export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep = 0, onNavigate, onLogoClick, onBack }) {
   const handleLogoClick = () => {
-    if (onLogoClick) {
-      onLogoClick();
-    }
+    if (onLogoClick) onLogoClick();
   };
 
   return (
@@ -95,7 +93,7 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
           </span>
         </div>
 
-        {/* Step tabs */}
+        {/* Step tabs + back button */}
         <div style={{ display: "flex", alignItems: "stretch", gap: 0, height: "60px" }}>
           {STEPS.map((step, index) => {
             const isActive = index === currentStep;
@@ -141,6 +139,38 @@ export default function GlobalNavigationBar({ currentStep = 0, maxUnlockedStep =
               </button>
             );
           })}
+
+          {onBack && (
+            <button
+              onClick={onBack}
+              style={{
+                background: "none",
+                border: "1px solid rgba(217, 138, 33, 0.35)",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: "0.8rem",
+                fontWeight: 600,
+                color: "#D98A21",
+                padding: "0 16px",
+                margin: "auto 0 auto 16px",
+                height: "32px",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                transition: "all 0.2s ease",
+                whiteSpace: "nowrap",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(217, 138, 33, 0.1)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "none";
+              }}
+            >
+              ← Groups
+            </button>
+          )}
         </div>
       </div>
     </nav>

@@ -1,72 +1,52 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import GlobalNavigationBar from "./shared/components/GlobalNavigationBar";
 import WorkspaceImportLayout from "./module1/catalyst-import/components/WorkspaceImportLayout";
 import ValidationDashboardLayout from "./module2/literature-review/components/ValidationDashboardLayout";
 import SynthesisDraftModule from "./module3/synthesis-draft/components/SynthesisDraftModule";
-import LandingPage from "./landing_page/LandingPage";
 
 /**
- * App.jsx – CiteWise root
+ * CiteWise App
  *
- * Step -1 → Landing Page
- * Step 0  →  Data Import        (WorkspaceImportLayout)
- * Step 1  →  AI Assessment      (ValidationDashboardLayout)
- * Step 2  →  Generate Introduction (SynthesisDraftModule)
+ * Step 0 → Data Import        (WorkspaceImportLayout)
+ * Step 1 → AI Assessment      (ValidationDashboardLayout)
+ * Step 2 → Generate Introduction (SynthesisDraftModule)
  *
+ * Entered via GroupCard "CiteWise →" which pre-loads sessionId +
+ * catalystData into localStorage before navigating here.
  */
-export default function App() {
+export default function CiteWiseApp() {
+  const navigate = useNavigate();
+
   const [step, setStep] = useState(() => {
     const saved = localStorage.getItem("citewise.step");
-    return saved !== null ? parseInt(saved, 10) : -1;
+    const parsed = saved !== null ? parseInt(saved, 10) : 0;
+    // clamp: never start at the old "landing" step -1
+    return parsed < 0 ? 0 : parsed;
   });
+
   const [maxUnlockedStep, setMaxUnlockedStep] = useState(() => {
     const saved = localStorage.getItem("citewise.maxUnlockedStep");
     const parsed = saved !== null ? parseInt(saved, 10) : NaN;
-    const currentFloor = step >= 0 ? step : 0;
-    if (!Number.isNaN(parsed)) {
-      return Math.max(parsed, currentFloor);
-    }
-    return currentFloor;
+    const floor = step >= 0 ? step : 0;
+    return !Number.isNaN(parsed) ? Math.max(parsed, floor) : floor;
   });
-  const [sessionId, setSessionId] = useState(() => {
-    return localStorage.getItem("citewise.sessionId") || "";
-  });
-  const [isLoading, setIsLoading] = useState(false);
+
+  const [sessionId, setSessionId] = useState(
+    () => localStorage.getItem("citewise.sessionId") || ""
+  );
 
   useEffect(() => {
     localStorage.setItem("citewise.step", step.toString());
   }, [step]);
 
   useEffect(() => {
-    if (sessionId) {
-      localStorage.setItem("citewise.sessionId", sessionId);
-    }
+    if (sessionId) localStorage.setItem("citewise.sessionId", sessionId);
   }, [sessionId]);
 
   useEffect(() => {
     localStorage.setItem("citewise.maxUnlockedStep", maxUnlockedStep.toString());
   }, [maxUnlockedStep]);
-
-  const handleGetStarted = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setStep(0);
-      setMaxUnlockedStep((prev) => Math.max(prev, 0));
-      setIsLoading(false);
-    }, 800);
-  };
-
-  const handleLogoClick = () => {
-    setStep(-1);
-    // Optional: Clear session if you want to reset everything
-    // setSessionId("");
-  };
-
-  const handleNavbarNavigate = (nextStep) => {
-    if (nextStep <= maxUnlockedStep) {
-      setStep(nextStep);
-    }
-  };
 
   const handleModule1Proceed = () => {
     setMaxUnlockedStep((prev) => Math.max(prev, 1));
@@ -74,37 +54,32 @@ export default function App() {
   };
 
   const handleModuleStepChange = (nextStep, nextSessionId) => {
-    if (nextSessionId) {
-      setSessionId(nextSessionId);
-    }
+    if (nextSessionId) setSessionId(nextSessionId);
     if (typeof nextStep !== "number") return;
     setMaxUnlockedStep((prev) => Math.max(prev, nextStep));
     setStep(nextStep);
   };
 
+  const handleNavbarNavigate = (nextStep) => {
+    if (nextStep <= maxUnlockedStep) setStep(nextStep);
+  };
+
+  function handleBackToGroups() {
+    navigate("/groups");
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#1E1C19" }}>
 
-      {step !== -1 && (
-        <GlobalNavigationBar 
-          currentStep={step} 
-          maxUnlockedStep={maxUnlockedStep}
-          onNavigate={handleNavbarNavigate}
-          onLogoClick={handleLogoClick}
-        />
-      )}
+      <GlobalNavigationBar
+        currentStep={step}
+        maxUnlockedStep={maxUnlockedStep}
+        onNavigate={handleNavbarNavigate}
+        onLogoClick={handleBackToGroups}
+        onBack={handleBackToGroups}
+      />
 
-      <main style={{
-        flex: 1,
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        minHeight: 0,
-      }}>
-
-        {step === -1 && (
-          <LandingPage onGetStarted={handleGetStarted} isLoading={isLoading} />
-        )}
+      <main style={{ flex: 1, width: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}>
 
         {step === 0 && (
           <WorkspaceImportLayout
@@ -120,7 +95,6 @@ export default function App() {
           />
         )}
 
-        {/* Module 3 – Generate Introduction */}
         {step === 2 && (
           <SynthesisDraftModule
             sessionId={sessionId}
