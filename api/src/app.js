@@ -9,6 +9,12 @@ import summarizerRoutes from './modules/summarizer/summarizer.router.js';
 import gapRoutes from './modules/gap/gap.routes.js';
 import topicRoutes from './modules/topic/topic.routes.js';
 
+// CiteWise modules (ported from Spring Boot)
+import catalystCwRoutes  from './modules/citewise/catalyst.routes.js';
+import rrlRoutes         from './modules/citewise/rrl.routes.js';
+import documentsRoutes   from './modules/citewise/documents.routes.js';
+import synthesisRoutes   from './modules/citewise/synthesis.routes.js';
+
 const app = express();
 
 // Define allowed origins for CORS
@@ -31,7 +37,7 @@ app.use(
       return callback(null, true);
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Session-Id'],
     credentials: true // Enable if using cookies/sessions
   })
 );
@@ -57,6 +63,12 @@ app.use('/api/extractor', extractorRoutes);
 app.use('/api/summarizer', summarizerRoutes);
 app.use('/api/gap', gapRoutes);
 app.use('/api/topic', topicRoutes);
+
+// CiteWise routes
+app.use('/api/catalyst', catalystCwRoutes);
+app.use('/api/rrl',      rrlRoutes);
+app.use('/api/v1/documents', documentsRoutes);
+app.use('/api/v1/synthesis', synthesisRoutes);
 
 app.use(errorHandler);
 
