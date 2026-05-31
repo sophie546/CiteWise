@@ -59,9 +59,55 @@ router.get('/:groupId', async (req, res) => {
   }
 });
 
+// GET /api/catalyst/:groupId/topics  – return all topics for a group (for topic-picker UI)
+router.get('/:groupId/topics', async (req, res) => {
+  const { groupId } = req.params;
+  if (!groupId?.trim()) {
+    return res.status(400).json({ success: false, message: 'Workspace ID is required', data: null });
+  }
+  try {
+    const [topicRes, gapRes] = await Promise.all([
+      supabase.from('Topic').select('*').eq('group_id', groupId.trim()).order('created_at', { ascending: true }),
+      supabase.from('GapResult').select('*').eq('group_id', groupId.trim()),
+    ]);
+    if (topicRes.error) throw new Error(topicRes.error.message);
+    if (gapRes.error)   throw new Error(gapRes.error.message);
+
+    const gaps = (gapRes.data ?? []).flatMap(row => {
+      const raw = row.gap;
+      if (Array.isArray(raw)) return raw.filter(Boolean);
+      if (typeof raw === 'string') {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) return parsed.map(g => String(g).trim()).filter(Boolean);
+          return [String(parsed).trim()].filter(Boolean);
+        } catch {
+          return raw.split(/;\s*/).map(g => g.trim()).filter(Boolean);
+        }
+      }
+      return [];
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        topics: (topicRes.data ?? []).map(t => ({ id: t.id, title: t.title, rationale: t.rationale })),
+        gaps,
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message, data: null });
+  }
+});
+
 // POST /api/catalyst/import  – fetch + persist research_baselines + return sessionId
+// Body: { workspaceId, title?, rationale? }
+//   title + rationale override the DB lookup — used when user has picked a specific topic
 router.post('/import', async (req, res) => {
-  const workspaceId = req.body?.workspaceId;
+  const workspaceId  = req.body?.workspaceId;
+  const titleOverride    = req.body?.title?.trim()    || null;
+  const rationaleOverride= req.body?.rationale?.trim()|| null;
+
   if (!workspaceId?.trim()) {
     return res.status(400).json({ success: false, message: 'Workspace ID is required', data: null });
   }
@@ -69,7 +115,11 @@ router.post('/import', async (req, res) => {
   try {
     const payload = await fetchCatalystData(workspaceId.trim());
 
-    if (!payload.title) {
+    // Use caller-supplied title/rationale if provided (topic was user-selected)
+    const finalTitle    = titleOverride    ?? payload.title;
+    const finalRationale= rationaleOverride?? payload.rationale ?? '';
+
+    if (!finalTitle) {
       return res.status(400).json({
         success: false,
         message: 'No CATalyst workspace found with that ID, or it has no topic/gap data yet',
@@ -82,23 +132,23 @@ router.post('/import', async (req, res) => {
     const { error: insertError } = await supabase.from('research_baselines').insert({
       session_id:             sessionId,
       catalyst_workspace_id:  workspaceId.trim(),
-      project_title:          payload.title,
-      rationale:              payload.rationale ?? '',
+      project_title:          finalTitle,
+      rationale:              finalRationale,
       research_gaps:          payload.gaps,
       source_system:          'CATalyst',
     });
 
     if (insertError) throw new Error(`Failed to persist baseline: ${insertError.message}`);
 
-    console.log(`✅ Created session ${sessionId} for workspace ${workspaceId} – title: ${payload.title?.slice(0,60)}`);
+    console.log(`✅ Created session ${sessionId} for workspace ${workspaceId} – title: ${finalTitle?.slice(0,60)}`);
 
     return res.json({
       success: true,
       message: 'Workspace imported successfully',
       data: {
         sessionId,
-        title:     payload.title,
-        rationale: payload.rationale ?? '',
+        title:     finalTitle,
+        rationale: finalRationale,
         gaps:      payload.gaps,
       },
     });
